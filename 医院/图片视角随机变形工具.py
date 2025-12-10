@@ -297,8 +297,8 @@ def main():
 
 if __name__ == "__main__":
     # 如果直接运行脚本，使用配置的路径
-    input_folder = "/Users/a000/Documents/济生/医院拜访25/2505/贵州医生拜访2505-hy/照片"
-    output_folder = None  # 将在输入文件夹下创建子文件夹
+    input_folder = "/Users/a000/Documents/济生/医院拜访25/2511/何勇2511/科室"
+    output_folder = "/Users/a000/Documents/济生/医院拜访25/2511/何勇2511/科室_变形"  # 将在输入文件夹下创建子文件夹
     intensity = 0.4  # 变形强度
     num_variants = 1  # 每张图片生成1个变体
     

@@ -59,7 +59,9 @@ def add_text_to_images(image_folder, text_list):
     data_dict, text_data1, text_data2, text_data3 = text_list
     for image_file in image_files:
         try:
-            img = Image.open(os.path.join(image_folder, image_file))
+            # 保存原始图片引用
+            img_original = Image.open(os.path.join(image_folder, image_file))
+            img = img_original.copy()
             width, height = img.size
             draw = ImageDraw.Draw(img)
 
@@ -148,9 +150,29 @@ def add_text_to_images(image_folder, text_list):
                 txt_draw.text((watermark_x, watermark_y), watermark_text, font=watermark_font, fill=(255, 255, 255, int(255 * 0.75)))
                 
                 # 将半透明文字合成到原图上
-                img = Image.alpha_composite(img.convert('RGBA'), txt_img).convert('RGB')
+                img = Image.alpha_composite(img.convert('RGBA'), txt_img)
                 
-                img.save(os.path.join(image_folder2, f"{image_file}"))
+                # 恢复原始图片格式
+                original_format = img_original.format
+                
+                # 构建输出路径
+                output_path = os.path.join(image_folder2, f"{image_file}")
+                
+                # 根据原始格式选择合适的保存参数
+                if original_format == 'JPEG' or image_file.lower().endswith(('.jpg', '.jpeg')):
+                    # 高质量保存JPEG图片
+                    img = img.convert('RGB')
+                    img.save(output_path, format='JPEG', quality=95, subsampling=0)
+                elif original_format == 'PNG' or image_file.lower().endswith('.png'):
+                    # 无损保存PNG图片
+                    img.save(output_path, format='PNG', optimize=False)
+                elif original_format == 'WEBP' or image_file.lower().endswith('.webp'):
+                    # 高质量保存WEBP图片
+                    img.save(output_path, format='WEBP', quality=95)
+                else:
+                    # 其他格式，使用默认参数但保留原始格式
+                    img = img.convert('RGB')
+                    img.save(output_path, format=original_format)
             else:
                 print(f"在Excel数据中未找到与图片 {image_file} 对应的记录")
         except IndexError:
@@ -161,6 +183,6 @@ def add_text_to_images(image_folder, text_list):
 
 excel_file_path = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/贵州医生拜访2512-遵义安顺_updated-整理.xlsx'
 image_folder = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片3'
-image_folderout = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片4'
+image_folderout = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片'
 text_list = read_excel_data(excel_file_path)
 add_text_to_images(image_folder, text_list)

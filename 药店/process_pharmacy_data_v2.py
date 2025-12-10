@@ -14,9 +14,9 @@ from datetime import datetime
 from openpyxl import load_workbook
 
 # 配置参数
-FILE_PATH = "/Users/a000/Documents/济生/药店拜访25/2505张丹凤/遵义拜访时间250813-3.xlsx"
-SHEET_NAME = "张丹凤05"
-NEW_SHEET_NAME = "张丹凤05_新排序"
+FILE_PATH = "/Users/a000/Documents/济生/药店拜访25/2511周星贤令狐思雨药店/遵义拜访时间250813-3.xlsx"
+SHEET_NAME = "拜访时间安排-删减"
+NEW_SHEET_NAME = "拜访时间安排-删减-新排序"
 
 def process_pharmacy_data_v2():
     """按新排序规则处理药店数据"""

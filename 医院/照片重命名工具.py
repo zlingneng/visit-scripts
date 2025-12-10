@@ -56,24 +56,29 @@ def check_photos_directory(photo_dir):
 
 def is_valid_photo_filename(filename):
     """检查文件名是否符合以数字-或数字_开头的格式"""
-    if '-' in filename:
-        parts = filename.split('-', 1)  # 只分割第一个-
-        if parts[0].isdigit():
-            return True
-    if '_' in filename:
-        parts = filename.split('_', 1)  # 只分割第一个_
-        if parts[0].isdigit():
+    # 找到第一个出现的分隔符（-或_）
+    sep_index = min(filename.find('-') if filename.find('-') != -1 else float('inf'),
+                   filename.find('_') if filename.find('_') != -1 else float('inf'))
+    
+    if sep_index != float('inf'):
+        # 取分隔符之前的部分
+        prefix = filename[:sep_index]
+        if prefix.isdigit():
             return True
     return False
 
 def extract_hospital_number(filename):
-    """从文件名中提取医院编号"""
-    if '-' in filename:
-        return int(filename.split('-', 1)[0])
-    elif '_' in filename:
-        return int(filename.split('_', 1)[0])
-    else:
-        raise ValueError(f"无法从文件名 {filename} 中提取医院编号")
+    """从文件名中提取医院编号（根据_或-分割，取第一个部分）"""
+    # 找到第一个出现的分隔符（-或_）
+    sep_index = min(filename.find('-') if filename.find('-') != -1 else float('inf'),
+                   filename.find('_') if filename.find('_') != -1 else float('inf'))
+    
+    if sep_index != float('inf'):
+        # 取分隔符之前的部分
+        prefix = filename[:sep_index]
+        if prefix.isdigit():
+            return int(prefix)
+    raise ValueError(f"无法从文件名 {filename} 中提取医院编号")
 
 def process_photo_renaming(excel_file, photo_dir):
     """处理照片重命名的主要逻辑"""
@@ -163,6 +168,45 @@ def process_photo_renaming(excel_file, photo_dir):
             hospital_name = next((name for name, num in hospital_to_number.items() if int(num) == hospital_num), f"未知医院{hospital_num}")
             print(f"  医院 {int(hospital_num)} ({hospital_name}): {len(photos)} 张照片")
         
+        # 创建备份目录（与照片目录同一级别）
+        photo_dir_parent = os.path.dirname(photo_dir)
+        backup_dir = os.path.join(photo_dir_parent, "大门原照片备份")
+        os.makedirs(backup_dir, exist_ok=True)
+        print(f"\n创建备份目录: {backup_dir}")
+        
+        # 直接拷贝整个照片文件夹的所有文件
+        print("开始备份所有照片文件...")
+        backup_count = 0
+        for file in os.listdir(photo_dir):
+            old_path = os.path.join(photo_dir, file)
+            backup_path = os.path.join(backup_dir, file)
+            try:
+                # 只拷贝文件，跳过子目录（如果有的话）
+                if os.path.isfile(old_path):
+                    shutil.copy2(old_path, backup_path)
+                    print(f"备份: {file}")
+                    backup_count += 1
+            except Exception as e:
+                print(f"备份失败 {file}: {e}")
+        
+        print(f"备份完成，共备份 {backup_count} 个文件")
+        
+        # 确定将要重命名的照片
+        photos_to_rename = []  # 记录将要重命名的照片
+        
+        # 先确定所有将要重命名的照片，但不立即移除它们
+        temp_photos_by_hospital = {}  # 创建一个临时副本用于选择照片
+        for hospital_num, photos in photos_by_hospital.items():
+            temp_photos_by_hospital[hospital_num] = photos.copy()
+        
+        for record in daily_hospital_schedule:
+            hospital_num = record['医院编号']
+            if hospital_num in temp_photos_by_hospital and temp_photos_by_hospital[hospital_num]:
+                # 随机选择一张照片用于重命名
+                selected_photo = random.choice(temp_photos_by_hospital[hospital_num])
+                photos_to_rename.append((selected_photo, record))  # 保存照片和对应的记录
+                temp_photos_by_hospital[hospital_num].remove(selected_photo)
+        
         # 执行重命名
         rename_count = 0
         for record in daily_hospital_schedule:
@@ -203,10 +247,10 @@ def process_photo_renaming(excel_file, photo_dir):
 if __name__ == "__main__":
     # ==================== 配置区域 ====================
     # 输入文件路径
-    EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/2510/何勇2510/贵州医生拜访2510-何勇-蔡林川-周星贤.xlsx'
+    EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/贵州医生拜访2512-遵义安顺.xlsx'
     
     # 目录路径
-    PHOTO_DIR = '/Users/a000/Documents/济生/医院拜访25/2510/何勇2510/照片2'
+    PHOTO_DIR = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片'
     # ================================================
     
     print("=== 分析Excel文件 ===")

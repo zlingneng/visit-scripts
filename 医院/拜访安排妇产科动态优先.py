@@ -88,8 +88,10 @@ def read_excel_data(file_path):
         
         # 读取医院地址标签页
         df_addr = pd.read_excel(file_path, sheet_name='医院地址')
-        # 重命名列名为标准格式
-        df_addr.columns = ['医院名称', '地址']
+        # 安全地重命名列名（只重命名前两列）
+        if len(df_addr.columns) >= 2:
+            new_columns = ['医院名称', '地址'] + list(df_addr.columns[2:]) if len(df_addr.columns) > 2 else ['医院名称', '地址']
+            df_addr.columns = new_columns
         print(f"成功读取医院地址数据，共{len(df_addr)}条记录")
         
         return df, df_addr
@@ -312,6 +314,11 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
     visitor_hospital_history = {visitor: [] for visitor in visitors}  # 记录每个拜访者的医院拜访历史
     
     total_visits = 0
+    obgyn_visit_count = 0
+    prioritize_obgyn_next_batch = False
+    first_batch_done = False
+    last_batch_visits = []
+    last_batch_meta = None
     
     for day in working_days:
         # 检查是否所有拜访人都已达到目标
@@ -403,54 +410,81 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
                 if max_visits_this_hospital < min_visits_per_hospital:
                     continue
                     
-                # 按科室分组
                 dept_groups = available_doctors.groupby('科室')
-                
-                hospital_visits = 0
+                obgyn_departments = ['妇科', '产科', '妇产科', '中医妇产科']
+                non_obgyn_groups = []
+                obgyn_groups = []
                 for dept, dept_doctors in dept_groups:
-                    if hospital_visits >= max_visits_this_hospital:
+                    if dept in obgyn_departments:
+                        obgyn_groups.append((dept, dept_doctors))
+                    else:
+                        non_obgyn_groups.append((dept, dept_doctors))
+                groups_non = non_obgyn_groups[:]
+                groups_ob = obgyn_groups[:]
+                hospital_visits = 0
+                while (
+                    hospital_visits < max_visits_this_hospital and
+                    len(visits_today) < daily_visits and
+                    total_visits < target_visits and
+                    (len(groups_non) > 0 or len(groups_ob) > 0)
+                ):
+                    choose_ob = False
+                    if first_batch_done:
+                        choose_ob = prioritize_obgyn_next_batch
+                    else:
+                        choose_ob = False
+                    
+                    # 计算当前妇产科占比
+                    current_ratio = (obgyn_visit_count / total_visits) if total_visits > 0 else 0
+                    
+                    if choose_ob and len(groups_ob) > 0:
+                        # 优先妇产科
+                        chosen_list = groups_ob
+                    elif len(groups_non) > 0:
+                        # 选择非妇产科
+                        chosen_list = groups_non
+                    elif current_ratio < 0.2 and len(groups_ob) > 0:
+                        # 只有当妇产科占比<20%时，才fallback到妇产科
+                        chosen_list = groups_ob
+                    else:
+                        # 妇产科占比>=20%且非妇产科已用完，跳出循环
                         break
-                        
-                    # 每个科室每天最多4-6次拜访
+                    
+                    if len(chosen_list) == 0:
+                        break
+                    dept, dept_doctors = chosen_list[0]
                     max_dept_visits = random.randint(4, 6)
                     current_dept_visits = daily_hospital_dept_count[day_str][f"{hospital}_{dept}"]
-                    
                     if current_dept_visits >= max_dept_visits:
+                        chosen_list.pop(0)
                         continue
-                    
                     remaining_dept_visits = max_dept_visits - current_dept_visits
                     dept_visits = min(
                         remaining_dept_visits,
                         len(dept_doctors),
-                        max_visits_this_hospital - hospital_visits
+                        max_visits_this_hospital - hospital_visits,
+                        daily_visits - len(visits_today)
                     )
-                    
-                    # 逐个选择医生，确保不重复姓氏
                     existing_doctors_in_dept = daily_hospital_dept_doctors[day_str][f"{hospital}_{dept}"]
                     selected_doctors = []
                     available_doctors_list = list(dept_doctors.iterrows())
-                    random.shuffle(available_doctors_list)  # 随机打乱顺序
-                    
+                    random.shuffle(available_doctors_list)
                     for _, doctor_row in available_doctors_list:
                         if len(selected_doctors) >= dept_visits:
                             break
-                            
-                        # 检查与已选择的医生和当天已安排的医生是否有相同姓氏
                         current_dept_doctors = existing_doctors_in_dept + [d['医生名称'] for d in selected_doctors]
                         if not check_same_surname(doctor_row['医生名称'], current_dept_doctors):
                             selected_doctors.append(doctor_row)
-                    
                     if len(selected_doctors) == 0:
+                        chosen_list.pop(0)
                         continue
-                    
+                    batch_obg = len(selected_doctors) if dept in obgyn_departments else 0
+                    current_batch_visits = []
                     for doctor_row in selected_doctors:
-                        if len(visits_today) >= daily_visits or total_visits >= target_visits:
+                        if len(visits_today) >= daily_visits or total_visits >= target_visits or hospital_visits >= max_visits_this_hospital:
                             break
-                            
-                        # 匹配医院地址
                         hospital_addr = df_addr[df_addr['医院名称'] == doctor_row['医院名称']]
                         address = hospital_addr['地址'].iloc[0] if len(hospital_addr) > 0 else '地址未找到'
-                        
                         visit = {
                             '日期': day_str,
                             '医院名称': doctor_row['医院名称'],
@@ -459,35 +493,108 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
                             '医生名称': doctor_row['医生名称'],
                             '地址': address
                         }
-                        
                         visits_today.append(visit)
+                        current_batch_visits.append(visit)
                         doctor_visited.add(doctor_row['医生名称'])
                         daily_hospital_dept_count[day_str][f"{hospital}_{dept}"] += 1
                         daily_hospital_dept_doctors[day_str][f"{hospital}_{dept}"].append(doctor_row['医生名称'])
                         hospital_visits += 1
                         total_visits += 1
                         visitor_visit_count[visitor] += 1
+                    obgyn_visit_count += batch_obg
+                    last_batch_visits = current_batch_visits
+                    last_batch_meta = {'day_str': day_str, 'visitor': visitor, 'hospital': hospital, 'dept': dept}
+                    first_batch_done = True
+                    ratio = (obgyn_visit_count / total_visits) if total_visits > 0 else 0
+                    prioritize_obgyn_next_batch = True if ratio < 0.2 else False
+                    chosen_list.pop(0)
                 
-                hospital_visits_today[hospital] = hospital_visits
+                
+            hospital_visits_today[hospital] = hospital_visits
             
             # 计算拜访时间
             visits_today = calculate_visit_times(visits_today, visitor)
             visit_plan.extend(visits_today)
             
-            # 更新拜访者的医院历史记录
             if visits_today:
-                # 获取当天拜访的医院列表（去重）
                 hospitals_visited_today = list(set([visit['医院名称'] for visit in visits_today]))
-                # 为每个拜访的医院添加记录
                 for hospital in hospitals_visited_today:
-                    visitor_hospital_history[visitor].append({
-                        'date': day_str,
-                        'hospital': hospital
-                    })
+                    visitor_hospital_history[visitor].append({'date': day_str, 'hospital': hospital})
+            ratio_finalize = (obgyn_visit_count / total_visits) if total_visits > 0 else 0
+            prioritize_obgyn_next_batch = True if ratio_finalize < 0.2 else False
     
+    final_ratio = (obgyn_visit_count / total_visits) if total_visits > 0 else 0
+    if final_ratio > 0.2 and last_batch_meta and last_batch_visits:
+        ob_depts = ['妇科', '产科', '妇产科', '中医妇产科']
+        if last_batch_meta['dept'] in ob_depts:
+            last_day = last_batch_meta['day_str']
+            last_visitor = last_batch_meta['visitor']
+            last_hospital = last_batch_meta['hospital']
+            # 修复：不能直接将包含字典的列表转换为集合，需要逐个比较
+            to_remove_set = set(v['医生名称'] for v in last_batch_visits)  # 使用医生名称作为唯一标识
+            visit_plan = [v for v in visit_plan if v['医生名称'] not in to_remove_set]
+            used_doctors = set([v['医生名称'] for v in visit_plan])
+            current_dept_counts = defaultdict(int)
+            for v in visit_plan:
+                if v['日期'] == last_day and v['拜访人'] == last_visitor:
+                    key = f"{v['医院名称']}_{v['科室']}"
+                    current_dept_counts[key] += 1
+            needed = len(last_batch_visits)
+            new_batch = []
+            candidate_hospitals = hospital_assignment[last_visitor]
+            hosp_counts = {}
+            for h in candidate_hospitals:
+                avail = df[(df['医院名称'] == h) & (~df['医生名称'].isin(used_doctors)) & (~df['科室'].isin(ob_depts))]
+                hosp_counts[h] = len(avail)
+            for hospital, _ in sorted(hosp_counts.items(), key=lambda x: x[1], reverse=True):
+                if needed <= 0:
+                    break
+                avail = df[(df['医院名称'] == hospital) & (~df['医生名称'].isin(used_doctors)) & (~df['科室'].isin(ob_depts))]
+                if len(avail) == 0:
+                    continue
+                for dept, dept_doctors in avail.groupby('科室'):
+                    if needed <= 0:
+                        break
+                    max_dept_visits = random.randint(4, 6)
+                    key = f"{hospital}_{dept}"
+                    cur = current_dept_counts[key]
+                    if cur >= max_dept_visits:
+                        continue
+                    remaining = max_dept_visits - cur
+                    cap = min(remaining, len(dept_doctors), needed)
+                    exist_names = [v['医生名称'] for v in visit_plan if v['日期'] == last_day and v['拜访人'] == last_visitor and v['医院名称'] == hospital and v['科室'] == dept]
+                    selected = []
+                    rows = list(dept_doctors.iterrows())
+                    random.shuffle(rows)
+                    for _, row in rows:
+                        if len(selected) >= cap:
+                            break
+                        check_list = exist_names + [d['医生名称'] for d in selected]
+                        if not check_same_surname(row['医生名称'], check_list):
+                            selected.append(row)
+                    for row in selected:
+                        if needed <= 0:
+                            break
+                        hospital_addr = df_addr[df_addr['医院名称'] == row['医院名称']]
+                        address = hospital_addr['地址'].iloc[0] if len(hospital_addr) > 0 else '地址未找到'
+                        nv = {
+                            '日期': last_day,
+                            '医院名称': row['医院名称'],
+                            '拜访人': last_visitor,
+                            '科室': row['科室'],
+                            '医生名称': row['医生名称'],
+                            '地址': address
+                        }
+                        new_batch.append(nv)
+                        used_doctors.add(row['医生名称'])
+                        current_dept_counts[f"{hospital}_{dept}"] += 1
+                        needed -= 1
+            visit_plan.extend(new_batch)
+            day_visits = [v for v in visit_plan if v['日期'] == last_day and v['拜访人'] == last_visitor]
+            day_visits = calculate_visit_times(day_visits, last_visitor)
     return visit_plan
 
-def save_to_excel(visit_plan, output_file, visitor_name):
+def save_to_excel(visit_plan, output_file, visitor_names):
     """保存拜访计划到Excel文件"""
     df_result = pd.DataFrame(visit_plan)
     
@@ -507,7 +614,9 @@ def save_to_excel(visit_plan, output_file, visitor_name):
         # 添加统计信息
         stats = []
         stats.append(['总拜访次数', len(df_result)])
-        stats.append([f'{visitor_name}拜访次数', len(df_result[df_result['拜访人'] == visitor_name])])
+        for visitor in visitor_names:
+            visitor_count = len(df_result[df_result['拜访人'] == visitor])
+            stats.append([f'{visitor}拜访次数', visitor_count])
         stats.append(['涉及医院数量', df_result['医院名称'].nunique()])
         stats.append(['涉及医生数量', df_result['医生名称'].nunique()])
         
@@ -531,24 +640,23 @@ def print_calendar_info(working_days):
         weekday_name = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][day.weekday()]
         print(f"  {day.strftime('%Y-%m-%d')} ({weekday_name})")
 
-def main(visitor_config, daily_visits_range, excel_file, output_file, start_date, end_date, target_visits=400):
+def main(visitor_config, daily_visits_range, excel_file, output_file, start_date, end_date, target_visits=400, target_hospitals=None, target_cities=None):
     # 验证配置
-    if visitor_config not in CONFIG:
-        print(f"错误：未找到配置 '{visitor_config}'")
-        print(f"可用配置：{list(CONFIG.keys())}")
+    if isinstance(visitor_config, str):
+        # 单个拜访人模式
+        visitors = [visitor_config]  # 单个拜访者
+    elif isinstance(visitor_config, list):
+        # 多个拜访人模式
+        visitors = visitor_config  # 多个拜访者
+    else:
+        print("错误：VISITOR_CONFIG 必须是字符串或列表")
         return
     
-    # 获取配置
-    config = CONFIG[visitor_config]
-    visitor_name = config['visitor_name']
-    target_hospitals = config['target_hospitals']
-    
-    visitors = [visitor_name]  # 只有一个拜访者
-    
     print(f"\n=== 当前配置：{visitor_config} ===")
-    print(f"拜访人员：{visitor_name}")
+    print(f"拜访人员：{', '.join(visitors)}")
     print(f"每日拜访量：{daily_visits_range[0]}-{daily_visits_range[1]}条")
-    print(f"目标医院数量：{len(target_hospitals)}家")
+    print(f"目标医院数量：{len(target_hospitals) if target_hospitals else '全部医院'}")
+    print(f"目标城市：{target_cities if target_cities else '全部城市'}")
     print(f"时间范围：{start_date.strftime('%Y-%m-%d')} 至 {end_date.strftime('%Y-%m-%d')}")
     
     # 读取数据
@@ -557,14 +665,27 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
     if df is None or df_addr is None:
         return
     
-    # 过滤数据，只保留指定医院的医生
+    # 过滤数据，只保留指定城市的数据（如果提供了目标城市列表）
     print(f"原始数据：{len(df)}条记录")
-    df = df[df['医院名称'].isin(target_hospitals)]
-    print(f"过滤后数据：{len(df)}条记录")
-    print(f"涉及医院：{df['医院名称'].unique()}")
+    if target_cities:
+        # 确保target_cities是列表格式，即使只指定了一个城市
+        if isinstance(target_cities, str):
+            target_cities = [target_cities]
+        df = df[df['所属城市'].isin(target_cities)]
+        print(f"按城市过滤后数据：{len(df)}条记录")
     
-    # 过滤医院地址数据
-    df_addr = df_addr[df_addr['医院名称'].isin(target_hospitals)]
+    # 过滤数据，只保留指定医院的医生（如果提供了目标医院列表）
+    if target_hospitals:
+        df = df[df['医院名称'].isin(target_hospitals)]
+        print(f"按医院过滤后数据：{len(df)}条记录")
+        print(f"涉及医院：{df['医院名称'].unique()}")
+        
+        # 过滤医院地址数据
+        df_addr = df_addr[df_addr['医院名称'].isin(target_hospitals)]
+    else:
+        print("使用所有医院数据")
+        hospitals = df['医院名称'].unique()
+        print(f"涉及医院：{hospitals}")
     
     # 获取工作日
     working_days = get_working_days(start_date, end_date)
@@ -576,12 +697,14 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
     
     # 保存结果
     print("\n正在保存结果...")
-    df_result = save_to_excel(visit_plan, output_file, visitor_name)
+    df_result = save_to_excel(visit_plan, output_file, visitors)
     
     # 打印统计信息
     print("\n=== 拜访计划统计 ===")
     print(f"总拜访次数：{len(visit_plan)}")
-    print(f"{visitor_name}拜访次数：{len([v for v in visit_plan if v['拜访人'] == visitor_name])}")
+    for visitor in visitors:
+        visitor_count = len([v for v in visit_plan if v['拜访人'] == visitor])
+        print(f"{visitor}拜访次数：{visitor_count}")
     print(f"涉及医院数量：{len(set([v['医院名称'] for v in visit_plan]))}")
     print(f"涉及医生数量：{len(set([v['医生名称'] for v in visit_plan]))}")
     
@@ -594,7 +717,8 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
     for date in sorted(daily_stats.keys()):
         date_obj = datetime.strptime(date, '%Y-%m-%d')
         weekday_name = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][date_obj.weekday()]
-        print(f"{date} ({weekday_name}): {visitor_name} {daily_stats[date][visitor_name]}次")
+        visitor_stats = ", ".join([f"{visitor} {daily_stats[date][visitor]}次" for visitor in visitors])
+        print(f"{date} ({weekday_name}): {visitor_stats}")
 
 # ==================== 配置区域 ====================
 # 在这里修改所有配置参数
@@ -603,51 +727,41 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
 DAILY_VISITS_RANGE = (17, 20)  # 每天拜访条数范围，可根据需要修改
 
 # 拜访人员选择配置
-VISITOR_CONFIG = '令狐思雨'  # 可选择：'何勇' 或 '张丹凤'
+# 单个拜访人模式：
+# VISITOR_CONFIG = '令狐思雨'
+# 多个拜访人模式：,['令狐思雨', '周星贤','张令能'] #['令狐思雨', '周星贤'] #
+VISITOR_CONFIG = [ '何勇','张丹凤','胡乐凤','蔡林川']
 
 # 目标拜访总数
-TARGET_VISITS = 450
+TARGET_VISITS = 20000
 
 # 文件路径配置
-EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251105_194340.xlsx'  # 输入Excel文件路径
-OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2510/贵州医生拜访2510-妇幼.xlsx'  # 输出Excel文件路径
+EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
+OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳5.xlsx'  # 输出Excel文件路径
 
 # 拜访日期范围配置（具体日期）
 START_DATE = datetime(2025, 12, 1)  # 开始日期：年-月-日
-END_DATE = datetime(2025, 12, 11)   # 结束日期：年-月-日
+END_DATE = datetime(2025, 12, 31)   # 结束日期：年-月-日
 
-# 人员配置字典（只包含人员相关信息）
-CONFIG = {
-    '令狐思雨': {
-        'visitor_name': '令狐思雨',
-        'target_hospitals': [
-            # '贵州医科大学附属医院',
-            # '贵州省人民医院',
-            '贵阳市妇幼保健院',
-            # '贵阳市第二人民医院（金阳医院）',
-            # '贵阳市第一人民医院',
-            # '贵州中医药大学第一附属医院',
-            # '贵州省职工医院',
-            # '清镇市第一人民医院',
-            # '贵州省中医药大学第二附属医院',
-            # '贵黔国际总医院',
-            # '上海儿童医学中心贵州医院',
-            # '贵州省第二人民医院',
-            # '贵阳市花溪区人民医院',
-            # '贵阳市公共卫生救治中心',
-            # '贵航贵阳医院',
-            # '遵义市第一人民医院',
-            # '遵义医科大学附属医院',
-            #'遵义市中医院',
-            #'贵州航天医院',
-            # '遵义市播州区人民医院',
-            # '遵义市妇幼保健院',
-            # '遵义医科大学第二附属医院',
-            # '遵义市播州区中医院'
-        ]
-    }
-}
+# 目标医院列表（可选，如果不设置则使用所有医院）
+# TARGET_HOSPITALS = [
+#     '贵阳市妇幼保健院',
+#     '贵州医科大学附属医院',
+#     '贵州省人民医院',
+#     # 添加更多医院...
+# ]
+
+# 如果只想使用特定医院，请取消下面这行的注释并填写医院名称
+TARGET_HOSPITALS = None  # 设置为None表示使用所有医院
+
+
+
+# 如果只想使用特定城市，请取消下面这行的注释并填写城市名称
+# 可以是单个城市（字符串）或多城市（列表），例如：
+# TARGET_CITIES = '遵义'
+# TARGET_CITIES = ['遵义', '贵阳']
+TARGET_CITIES = '贵阳'  # 设置为None表示使用所有城市
 
 # ==================== 程序入口 ====================
 if __name__ == "__main__":
-    main(VISITOR_CONFIG, DAILY_VISITS_RANGE, EXCEL_FILE, OUTPUT_FILE, START_DATE, END_DATE, TARGET_VISITS)
+    main(VISITOR_CONFIG, DAILY_VISITS_RANGE, EXCEL_FILE, OUTPUT_FILE, START_DATE, END_DATE, TARGET_VISITS, TARGET_HOSPITALS, TARGET_CITIES)

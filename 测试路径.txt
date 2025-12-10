@@ -1,0 +1,5 @@
+"/Users/a000/拜访规划/tupiandama250627-科室.py" 科室照片处理脚本
+'/Users/a000/拜访规划/tupiandama250627-大门.py' 大门照片处理脚本
+/Users/a000/拜访规划/haodf_hospital_scraper.py 好大夫医院数据爬取
+/Users/a000/拜访规划/guizhou_hospital_dept_scraper.py 贵州医院科室数据爬取
+"/Users/a000/拜访规划/guizhou_hospital_doctor_scraper.py" 贵州医院医生数据爬取

@@ -88,8 +88,10 @@ def read_excel_data(file_path):
         
         # 读取医院地址标签页
         df_addr = pd.read_excel(file_path, sheet_name='医院地址')
-        # 重命名列名为标准格式
-        df_addr.columns = ['医院名称', '地址']
+        # 安全地重命名列名（只重命名前两列）
+        if len(df_addr.columns) >= 2:
+            new_columns = ['医院名称', '地址'] + list(df_addr.columns[2:]) if len(df_addr.columns) > 2 else ['医院名称', '地址']
+            df_addr.columns = new_columns
         print(f"成功读取医院地址数据，共{len(df_addr)}条记录")
         
         return df, df_addr
@@ -406,8 +408,24 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
                 # 按科室分组
                 dept_groups = available_doctors.groupby('科室')
                 
-                hospital_visits = 0
+                # 定义妇产科相关科室列表
+                obgyn_departments = ['妇科', '产科', '妇产科', '中医妇产科']
+                
+                # 重新排序科室：优先非妇产科科室
+                sorted_dept_groups = []
+                obgyn_groups = []
+                
                 for dept, dept_doctors in dept_groups:
+                    if dept in obgyn_departments:
+                        obgyn_groups.append((dept, dept_doctors))
+                    else:
+                        sorted_dept_groups.append((dept, dept_doctors))
+                
+                # 将妇产科科室放到最后
+                sorted_dept_groups.extend(obgyn_groups)
+                
+                hospital_visits = 0
+                for dept, dept_doctors in sorted_dept_groups:
                     if hospital_visits >= max_visits_this_hospital:
                         break
                         
@@ -487,7 +505,7 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
     
     return visit_plan
 
-def save_to_excel(visit_plan, output_file, visitor_name):
+def save_to_excel(visit_plan, output_file, visitor_names):
     """保存拜访计划到Excel文件"""
     df_result = pd.DataFrame(visit_plan)
     
@@ -507,7 +525,9 @@ def save_to_excel(visit_plan, output_file, visitor_name):
         # 添加统计信息
         stats = []
         stats.append(['总拜访次数', len(df_result)])
-        stats.append([f'{visitor_name}拜访次数', len(df_result[df_result['拜访人'] == visitor_name])])
+        for visitor in visitor_names:
+            visitor_count = len(df_result[df_result['拜访人'] == visitor])
+            stats.append([f'{visitor}拜访次数', visitor_count])
         stats.append(['涉及医院数量', df_result['医院名称'].nunique()])
         stats.append(['涉及医生数量', df_result['医生名称'].nunique()])
         
@@ -531,24 +551,23 @@ def print_calendar_info(working_days):
         weekday_name = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][day.weekday()]
         print(f"  {day.strftime('%Y-%m-%d')} ({weekday_name})")
 
-def main(visitor_config, daily_visits_range, excel_file, output_file, start_date, end_date, target_visits=400):
+def main(visitor_config, daily_visits_range, excel_file, output_file, start_date, end_date, target_visits=400, target_hospitals=None, target_cities=None):
     # 验证配置
-    if visitor_config not in CONFIG:
-        print(f"错误：未找到配置 '{visitor_config}'")
-        print(f"可用配置：{list(CONFIG.keys())}")
+    if isinstance(visitor_config, str):
+        # 单个拜访人模式
+        visitors = [visitor_config]  # 单个拜访者
+    elif isinstance(visitor_config, list):
+        # 多个拜访人模式
+        visitors = visitor_config  # 多个拜访者
+    else:
+        print("错误：VISITOR_CONFIG 必须是字符串或列表")
         return
     
-    # 获取配置
-    config = CONFIG[visitor_config]
-    visitor_name = config['visitor_name']
-    target_hospitals = config['target_hospitals']
-    
-    visitors = [visitor_name]  # 只有一个拜访者
-    
     print(f"\n=== 当前配置：{visitor_config} ===")
-    print(f"拜访人员：{visitor_name}")
+    print(f"拜访人员：{', '.join(visitors)}")
     print(f"每日拜访量：{daily_visits_range[0]}-{daily_visits_range[1]}条")
-    print(f"目标医院数量：{len(target_hospitals)}家")
+    print(f"目标医院数量：{len(target_hospitals) if target_hospitals else '全部医院'}")
+    print(f"目标城市：{target_cities if target_cities else '全部城市'}")
     print(f"时间范围：{start_date.strftime('%Y-%m-%d')} 至 {end_date.strftime('%Y-%m-%d')}")
     
     # 读取数据
@@ -557,14 +576,27 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
     if df is None or df_addr is None:
         return
     
-    # 过滤数据，只保留指定医院的医生
+    # 过滤数据，只保留指定城市的数据（如果提供了目标城市列表）
     print(f"原始数据：{len(df)}条记录")
-    df = df[df['医院名称'].isin(target_hospitals)]
-    print(f"过滤后数据：{len(df)}条记录")
-    print(f"涉及医院：{df['医院名称'].unique()}")
+    if target_cities:
+        # 确保target_cities是列表格式，即使只指定了一个城市
+        if isinstance(target_cities, str):
+            target_cities = [target_cities]
+        df = df[df['所属城市'].isin(target_cities)]
+        print(f"按城市过滤后数据：{len(df)}条记录")
     
-    # 过滤医院地址数据
-    df_addr = df_addr[df_addr['医院名称'].isin(target_hospitals)]
+    # 过滤数据，只保留指定医院的医生（如果提供了目标医院列表）
+    if target_hospitals:
+        df = df[df['医院名称'].isin(target_hospitals)]
+        print(f"按医院过滤后数据：{len(df)}条记录")
+        print(f"涉及医院：{df['医院名称'].unique()}")
+        
+        # 过滤医院地址数据
+        df_addr = df_addr[df_addr['医院名称'].isin(target_hospitals)]
+    else:
+        print("使用所有医院数据")
+        hospitals = df['医院名称'].unique()
+        print(f"涉及医院：{hospitals}")
     
     # 获取工作日
     working_days = get_working_days(start_date, end_date)
@@ -576,12 +608,14 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
     
     # 保存结果
     print("\n正在保存结果...")
-    df_result = save_to_excel(visit_plan, output_file, visitor_name)
+    df_result = save_to_excel(visit_plan, output_file, visitors)
     
     # 打印统计信息
     print("\n=== 拜访计划统计 ===")
     print(f"总拜访次数：{len(visit_plan)}")
-    print(f"{visitor_name}拜访次数：{len([v for v in visit_plan if v['拜访人'] == visitor_name])}")
+    for visitor in visitors:
+        visitor_count = len([v for v in visit_plan if v['拜访人'] == visitor])
+        print(f"{visitor}拜访次数：{visitor_count}")
     print(f"涉及医院数量：{len(set([v['医院名称'] for v in visit_plan]))}")
     print(f"涉及医生数量：{len(set([v['医生名称'] for v in visit_plan]))}")
     
@@ -594,7 +628,8 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
     for date in sorted(daily_stats.keys()):
         date_obj = datetime.strptime(date, '%Y-%m-%d')
         weekday_name = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][date_obj.weekday()]
-        print(f"{date} ({weekday_name}): {visitor_name} {daily_stats[date][visitor_name]}次")
+        visitor_stats = ", ".join([f"{visitor} {daily_stats[date][visitor]}次" for visitor in visitors])
+        print(f"{date} ({weekday_name}): {visitor_stats}")
 
 # ==================== 配置区域 ====================
 # 在这里修改所有配置参数
@@ -603,51 +638,41 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
 DAILY_VISITS_RANGE = (17, 20)  # 每天拜访条数范围，可根据需要修改
 
 # 拜访人员选择配置
-VISITOR_CONFIG = '令狐思雨'  # 可选择：'何勇' 或 '张丹凤'
+# 单个拜访人模式：
+# VISITOR_CONFIG = '令狐思雨'
+# 多个拜访人模式：,['令狐思雨', '周星贤','张令能'] #['令狐思雨', '周星贤'] #
+VISITOR_CONFIG = [ '何勇','张丹凤','胡乐凤','蔡林川']
 
 # 目标拜访总数
-TARGET_VISITS = 450
+TARGET_VISITS = 20000
 
 # 文件路径配置
-EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251105_194340.xlsx'  # 输入Excel文件路径
-OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2510/贵州医生拜访2510-妇幼.xlsx'  # 输出Excel文件路径
+EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
+OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳4.xlsx'  # 输出Excel文件路径
 
 # 拜访日期范围配置（具体日期）
 START_DATE = datetime(2025, 12, 1)  # 开始日期：年-月-日
-END_DATE = datetime(2025, 12, 11)   # 结束日期：年-月-日
+END_DATE = datetime(2025, 12, 31)   # 结束日期：年-月-日
 
-# 人员配置字典（只包含人员相关信息）
-CONFIG = {
-    '令狐思雨': {
-        'visitor_name': '令狐思雨',
-        'target_hospitals': [
-            # '贵州医科大学附属医院',
-            # '贵州省人民医院',
-            '贵阳市妇幼保健院',
-            # '贵阳市第二人民医院（金阳医院）',
-            # '贵阳市第一人民医院',
-            # '贵州中医药大学第一附属医院',
-            # '贵州省职工医院',
-            # '清镇市第一人民医院',
-            # '贵州省中医药大学第二附属医院',
-            # '贵黔国际总医院',
-            # '上海儿童医学中心贵州医院',
-            # '贵州省第二人民医院',
-            # '贵阳市花溪区人民医院',
-            # '贵阳市公共卫生救治中心',
-            # '贵航贵阳医院',
-            # '遵义市第一人民医院',
-            # '遵义医科大学附属医院',
-            #'遵义市中医院',
-            #'贵州航天医院',
-            # '遵义市播州区人民医院',
-            # '遵义市妇幼保健院',
-            # '遵义医科大学第二附属医院',
-            # '遵义市播州区中医院'
-        ]
-    }
-}
+# 目标医院列表（可选，如果不设置则使用所有医院）
+# TARGET_HOSPITALS = [
+#     '贵阳市妇幼保健院',
+#     '贵州医科大学附属医院',
+#     '贵州省人民医院',
+#     # 添加更多医院...
+# ]
+
+# 如果只想使用特定医院，请取消下面这行的注释并填写医院名称
+TARGET_HOSPITALS = None  # 设置为None表示使用所有医院
+
+
+
+# 如果只想使用特定城市，请取消下面这行的注释并填写城市名称
+# 可以是单个城市（字符串）或多城市（列表），例如：
+# TARGET_CITIES = '遵义'
+# TARGET_CITIES = ['遵义', '贵阳']
+TARGET_CITIES = '贵阳'  # 设置为None表示使用所有城市
 
 # ==================== 程序入口 ====================
 if __name__ == "__main__":
-    main(VISITOR_CONFIG, DAILY_VISITS_RANGE, EXCEL_FILE, OUTPUT_FILE, START_DATE, END_DATE, TARGET_VISITS)
+    main(VISITOR_CONFIG, DAILY_VISITS_RANGE, EXCEL_FILE, OUTPUT_FILE, START_DATE, END_DATE, TARGET_VISITS, TARGET_HOSPITALS, TARGET_CITIES)

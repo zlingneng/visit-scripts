@@ -1,12 +1,14 @@
 from datetime import datetime
 import openpyxl
 import os
+import json
+from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
 
 def read_excel_data(excel_file_path):
     workbook = openpyxl.load_workbook(excel_file_path)
-    sheet = workbook["拜访数据"]
+    sheet = workbook["科室"]
     data_dict = {}
     text_data1 = []
     text_data2 = []
@@ -23,39 +25,38 @@ def read_excel_data(excel_file_path):
     return data_dict, text_data1, text_data2, text_data3
 
 
-def load_watermark_config():
-    # 内置配置，无需外部配置文件
-    config = {
-        "text1": {
-            "x_ratio": 0.05,
-            "y_ratio": 0.78,
-            "font_size_ratio": 0.065
-        },
-        "text2": {
-            "x_ratio": 0.05,
-            "y_ratio": 0.9,
-            "font_size_ratio": 0.025
-        },
-        "text3": {
-            "x_ratio": 0.05,
-            "y_ratio": 0.871,
-            "font_size_ratio": 0.025
-        },
-        "font_path": "/Users/a000/Downloads/zhangzhenghui/msyh.ttf"
-    }
-    return config
+def load_watermark_config(config_path='config.json'):
+    default_config = {
+    "text1": {
+        "x_ratio": 0.05,
+        "y_ratio": 0.78,
+        "font_size_ratio": 0.065
+    },
+    "text2": {
+        "x_ratio": 0.05,
+        "y_ratio": 0.9,
+        "font_size_ratio": 0.025
+    },
+    "text3": {
+        "x_ratio": 0.05,
+        "y_ratio": 0.871,
+        "font_size_ratio": 0.025
+    },
+    "font_path": "/Users/a000/Downloads/zhangzhenghui/msyh.ttf"}
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"加载配置文件失败，使用默认配置: {e}")
+    return default_config
 
 
 def add_text_to_images(image_folder, text_list):
     image_files = [f for f in os.listdir(image_folder) if f.lower().endswith('.jpeg') 
                    or f.lower().endswith('.png') or f.lower().endswith('.jpg') or 
                    f.lower().endswith('.webp')]
-    
-    # 确保输出文件夹存在
-    if not os.path.exists(image_folderout):
-        os.makedirs(image_folderout)
-        print(f"已创建输出文件夹: {image_folderout}")
-    
     data_dict, text_data1, text_data2, text_data3 = text_list
     for image_file in image_files:
         try:
@@ -73,31 +74,27 @@ def add_text_to_images(image_folder, text_list):
                     # 如果不是时间格式（没有strftime方法），则保留原始字符串
                     text1 = data_dict[photo_name_without_ext]["text1"]
                 text2 = data_dict[photo_name_without_ext]["text2"]
-                text3 = data_dict[photo_name_without_ext]["text3"]
-                
-                # 如果text3已经是datetime对象，直接使用
-                if isinstance(text3, datetime):
-                    pass  # 已经是datetime对象，无需处理
-                elif isinstance(text3, str):
-                    # 尝试解析多种日期格式
-                    date_formats = ["%Y-%m-%d", "%Y.%m.%d", "%Y/%m/%d", "%m/%d/%Y", "%d/%m/%Y"]
-                    parsed = False
-                    for fmt in date_formats:
-                        try:
-                            text3 = datetime.strptime(text3, fmt)
-                            parsed = True
-                            break
-                        except ValueError:
-                            continue
+                try:
+                    # 如果是datetime对象，直接格式化
+                    if hasattr(data_dict[photo_name_without_ext]["text3"], 'strftime'):
+                        text3 = data_dict[photo_name_without_ext]["text3"]
+                    else:
+                        # 如果是字符串，尝试解析不同格式
+                        text3_str = str(data_dict[photo_name_without_ext]["text3"])
+                        if '-' in text3_str:
+                            text3 = datetime.strptime(text3_str, "%Y-%m-%d")
+                        elif '.' in text3_str:
+                            text3 = datetime.strptime(text3_str, "%Y.%m.%d")
+                        else:
+                            text3 = datetime.strptime(text3_str, "%Y%m%d")
                     
-                    if not parsed:
-                        raise ValueError(f"无法解析日期格式: {text3}，支持的格式: {', '.join(date_formats)}")
-                else:
-                    raise ValueError(f"text3必须是datetime对象或字符串，当前类型: {type(text3)}")
-                weekdays = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
-                weekday = weekdays[text3.weekday()]
-                text3 = text3.strftime("%Y.%m.%d")
-                text3 = f"{text3} {weekday}"
+                    weekdays = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
+                    weekday = weekdays[text3.weekday()]
+                    text3 = text3.strftime("%Y.%m.%d")
+                    text3 = f"{text3} {weekday}"
+                except (AttributeError, ValueError):
+                    # 如果解析失败，保留原始字符串
+                    text3 = str(data_dict[photo_name_without_ext]["text3"])
 
                 # 加载水印配置
                 config = load_watermark_config()
@@ -116,7 +113,7 @@ def add_text_to_images(image_folder, text_list):
                 font_size3 = int(height * config['text3']['font_size_ratio'])
                 
                 font_path = config['font_path']
-                image_folder2 = image_folderout
+                image_folder2 = r'/Users/a000/Documents/济生/医院拜访25/贵州医院拜访250115-5/科室2'
                 font1 = ImageFont.truetype(font_path, size = font_size1)  # 根据需要调整字体和大小
                 font2 = ImageFont.truetype(font_path, size = font_size2)  # 根据需要调整字体和大小
                 font3 = ImageFont.truetype(font_path, size = font_size3)  # 根据需要调整字体和大小
@@ -126,30 +123,6 @@ def add_text_to_images(image_folder, text_list):
                 # 根据需要调整文字位置和颜色
                 draw.text((x_position3, y_position3), text3, font = font3, fill = (255, 255, 255))  
                 # 根据需要调整文字位置和颜色
-                
-                # 添加右下角"水印相机"文字，30%透明度
-                watermark_text = "水印相机"
-                watermark_font_size = int(height * 0.035)  # 字体大小为图片高度的3%
-                watermark_font = ImageFont.truetype(font_path, size=watermark_font_size)
-                
-                # 获取文字尺寸
-                bbox = draw.textbbox((0, 0), watermark_text, font=watermark_font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-                
-                # 计算右下角位置（留一些边距）
-                watermark_x = width - text_width - int(width * 0.04)  # 右边距为图片宽度的2%
-                watermark_y = height - text_height - int(height * 0.04)  # 下边距为图片高度的2%
-                
-                # 创建半透明文字（30%透明度，即70%不透明度）
-                # 创建一个临时图像用于绘制半透明文字
-                txt_img = Image.new('RGBA', img.size, (255, 255, 255, 0))
-                txt_draw = ImageDraw.Draw(txt_img)
-                txt_draw.text((watermark_x, watermark_y), watermark_text, font=watermark_font, fill=(255, 255, 255, int(255 * 0.75)))
-                
-                # 将半透明文字合成到原图上
-                img = Image.alpha_composite(img.convert('RGBA'), txt_img).convert('RGB')
-                
                 img.save(os.path.join(image_folder2, f"{image_file}"))
             else:
                 print(f"在Excel数据中未找到与图片 {image_file} 对应的记录")
@@ -159,8 +132,7 @@ def add_text_to_images(image_folder, text_list):
             print(f"找不到图片文件：{image_file}")
 
 
-excel_file_path = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/贵州医生拜访2512-遵义安顺_updated-整理.xlsx'
-image_folder = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片3'
-image_folderout = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片4'
+excel_file_path = r'/Users/a000/Documents/济生/医院拜访25/贵州医院拜访250115-5/贵州医院拜访250115-5_修改后.xlsx'
+image_folder = r'/Users/a000/Documents/济生/医院拜访25/贵州医院拜访250115-5/科室'
 text_list = read_excel_data(excel_file_path)
 add_text_to_images(image_folder, text_list)

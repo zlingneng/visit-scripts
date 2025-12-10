@@ -114,16 +114,72 @@ def load_file_paths_from_txt(file_path):
 
 def load_file_lists():
     """从文本文件加载文件列表"""
-    # 只从文本文件加载路径
+    # 优先从文本文件加载路径
     pharmacy_txt_path = os.path.join(BACKUP_BASE_DIR, '药店文件路径.txt')
     hospital_txt_path = os.path.join(BACKUP_BASE_DIR, '医院文件路径.txt')
     
     pharmacy_files = load_file_paths_from_txt(pharmacy_txt_path)
     hospital_files = load_file_paths_from_txt(hospital_txt_path)
     
+    # 如果文本文件没有路径，则尝试从脚本注释区域提取文件路径
+    if not pharmacy_files or not hospital_files:
+        # 读取当前脚本文件内容
+        script_path = __file__
+        with open(script_path, 'r', encoding='utf-8') as f:
+            script_content = f.read()
+        
+        # 尝试从注释区域提取文件列表
+        pharmacy_files_from_comments = extract_file_paths_from_comments(script_content, "PHARMACY_FILES")
+        hospital_files_from_comments = extract_file_paths_from_comments(script_content, "HOSPITAL_FILES")
+        
+        # 如果从注释区域提取到了路径，则使用这些路径
+        if pharmacy_files_from_comments:
+            pharmacy_files = pharmacy_files_from_comments
+        
+        if hospital_files_from_comments:
+            hospital_files = hospital_files_from_comments
+    
+    # 如果仍然没有路径，则使用默认列表
+    if not pharmacy_files:
+        pharmacy_files = [
+            '/Users/a000/药店规划/找区域.py',
+            '/Users/a000/药店规划/遵义附近药店搜索.py',
+            '/Users/a000/药店规划/区域划分.py',
+            '/Users/a000/药店规划/路径规划贪心算法.py',
+            '/Users/a000/药店规划/拜访时间.py',
+            '/Users/a000/药店拜访/process_pharmacy_data_v2.py',
+            '/Users/a000/药店拜访/rename_pharmacy_files.py',
+            '/Users/a000/拜访规划/tupiandama250623药店.py',
+            '/Users/a000/药店拜访/pharmacy_visit_planner_enhanced.py'
+        ]
+    
+    if not hospital_files:
+        hospital_files = [
+            '/Users/a000/拜访规划/tupiandama250627-科室.py',
+            '/Users/a000/拜访规划/tupiandama250627-大门.py',
+            '/Users/a000/拜访规划/haodf_hospital_scraper.py',
+            '/Users/a000/拜访规划/guizhou_hospital_dept_scraper.py',
+            '/Users/a000/拜访规划/guizhou_hospital_doctor_scraper.py',
+            '/Users/a000/拜访测试/improved_visit_planner_unified.py',
+            '/Users/a000/拜访测试/improved_visit_planner_unified_day.py',
+            '/Users/a000/图片处理/医院拜访照片抽取工具.py',
+            '/Users/a000/图片处理/图片视角随机变形工具.py',
+            '/Users/a000/图片处理/照片相似度比对工具-支持单文件.py',
+            '/Users/a000/图片处理/照片相似度比对工具.py',
+            '/Users/a000/图片处理/照片重命名工具.py',
+            '/Users/a000/图片处理/创建医院科室文件夹.py',
+            '/Users/a000/图片处理/department_photo_extractor.py',
+            '/Users/a000/图片处理/科室照片重命名工具.py',
+            '/Users/a000/图片处理/拜访编号处理脚本_安全版.py',
+            '/Users/a000/图片处理/生成拜访数据脚本.py',
+            '/Users/a000/拜访规划/tupiandama250623.py',
+            '/Users/a000/图片处理/照片尺寸调整工具.py',
+            '/Users/a000/图片处理/照片压缩工具.py'
+        ]
+    
     return pharmacy_files, hospital_files
 
-# 从文本文件加载文件列表
+# 从注释区域加载文件列表
 PHARMACY_FILES, HOSPITAL_FILES = load_file_lists()
 
 def create_backup_directories():
@@ -179,7 +235,22 @@ def list_backup_contents():
         else:
             print("  (目录不存在)")
 
-
+def copy_backup_script():
+    """复制备份脚本本身到备份目录根目录"""
+    script_path = '/Users/a000/拜访脚本备份/脚本文件备份工具.py'
+    target_path = os.path.join(BACKUP_BASE_DIR, '脚本文件备份工具.py')
+    
+    try:
+        if os.path.exists(script_path):
+            shutil.copy2(script_path, target_path)
+            print(f"\n✓ 已复制备份脚本到: {target_path}")
+            return True
+        else:
+            print(f"\n✗ 备份脚本不存在: {script_path}")
+            return False
+    except Exception as e:
+        print(f"\n✗ 复制备份脚本失败: {str(e)}")
+        return False
 
 def main():
     """主函数"""
@@ -195,10 +266,15 @@ def main():
     # 复制医院相关文件
     hospital_success, hospital_failed = copy_files(HOSPITAL_FILES, HOSPITAL_DIR, "医院")
     
+    # 复制备份脚本本身
+    script_copied = copy_backup_script()
+    
     # 显示备份结果
     print("\n=== 备份完成 ===")
     print(f"总计复制成功: {pharmacy_success + hospital_success} 个文件")
     print(f"总计复制失败: {len(pharmacy_failed) + len(hospital_failed)} 个文件")
+    if script_copied:
+        print("备份脚本已复制到备份目录根目录")
     
     # 列出备份目录内容
     list_backup_contents()

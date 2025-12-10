@@ -14,21 +14,23 @@ import re
 from pathlib import Path
 
 # 配置参数
-TARGET_DIR = "/Users/a000/Downloads/2504何勇"
-EXCEL_FILE = "/Users/a000/Downloads/2504何勇/贵州药店拜访2504何勇.xlsx"
-SHEET_NAME = "Sheet2"
+TARGET_DIR = "/Users/a000/Documents/济生/药店拜访25/2511周星贤令狐思雨药店/照片3"
+EXCEL_FILE = "/Users/a000/Documents/济生/药店拜访25/2511周星贤令狐思雨药店/贵州药店拜访2511.xlsx"
+SHEET_NAME = "重排序"
 ORIGINAL_ID_COLUMN = "原编号"
 VISIT_ID_COLUMN = "拜访编号"
+# 重命名后的文件存放文件夹后缀
+OUTPUT_FOLDER_SUFFIX = "-新编号"
 
-def scan_png_files(directory):
-    """扫描目录中的PNG文件"""
-    png_files = []
+def scan_image_files(directory):
+    """扫描目录中的PNG和JPG文件"""
+    image_files = []
     try:
         for file in os.listdir(directory):
-            if file.lower().endswith('.png'):
-                png_files.append(file)
-        print(f"找到 {len(png_files)} 个PNG文件")
-        return png_files
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                image_files.append(file)
+        print(f"找到 {len(image_files)} 个图像文件")
+        return image_files
     except Exception as e:
         print(f"扫描目录失败: {e}")
         return []
@@ -36,7 +38,7 @@ def scan_png_files(directory):
 def remove_suffix_2(filename):
     """去掉文件名中的-2后缀"""
     # 匹配文件名中的-2（在扩展名前）
-    pattern = r'(.+)-2(\.png)$'
+    pattern = r'(.+)-2(\.(png|jpg|jpeg))$'
     match = re.match(pattern, filename, re.IGNORECASE)
     if match:
         return match.group(1) + match.group(2)
@@ -45,8 +47,8 @@ def remove_suffix_2(filename):
 def load_mapping_data(excel_file, sheet_name, original_col, visit_col):
     """从Excel文件加载映射数据"""
     try:
-        # 使用第3行作为表头（header=2，因为索引从0开始）
-        df = pd.read_excel(excel_file, sheet_name=sheet_name, header=2)
+        # 使用第1行作为表头（header=0，因为索引从0开始）
+        df = pd.read_excel(excel_file, sheet_name=sheet_name, header=0)
         print(f"Excel文件加载成功，共 {len(df)} 行数据")
         print(f"列名: {list(df.columns)}")
         
@@ -72,21 +74,21 @@ def load_mapping_data(excel_file, sheet_name, original_col, visit_col):
         print(f"读取Excel文件失败: {e}")
         return {}
 
-def preview_changes(png_files, mapping):
+def preview_changes(image_files, mapping):
     """预览将要进行的重命名操作"""
     print("\n=== 重命名预览 ===")
     changes = []
     
-    for filename in png_files:
+    for filename in image_files:
         # 先去掉-2后缀
         cleaned_name = remove_suffix_2(filename)
         
-        # 提取文件名（不含扩展名）
-        name_without_ext = os.path.splitext(cleaned_name)[0]
+        # 提取文件名和扩展名
+        name_without_ext, ext = os.path.splitext(cleaned_name)
         
         # 查找映射
         if name_without_ext in mapping:
-            new_name = mapping[name_without_ext] + '.png'
+            new_name = mapping[name_without_ext] + ext
             changes.append((filename, new_name))
             print(f"{filename} -> {new_name}")
         else:
@@ -94,14 +96,17 @@ def preview_changes(png_files, mapping):
     
     return changes
 
-def rename_files(directory, changes):
-    """执行文件重命名"""
+def rename_files(source_dir, output_dir, changes):
+    """执行文件重命名并保存到指定文件夹"""
     print("\n=== 开始重命名 ===")
     success_count = 0
     
+    # 获取输出文件夹名称
+    output_folder_name = os.path.basename(output_dir)
+    
     for old_name, new_name in changes:
-        old_path = os.path.join(directory, old_name)
-        new_path = os.path.join(directory, new_name)
+        old_path = os.path.join(source_dir, old_name)
+        new_path = os.path.join(output_dir, new_name)
         
         try:
             # 检查新文件名是否已存在
@@ -110,12 +115,12 @@ def rename_files(directory, changes):
                 continue
             
             os.rename(old_path, new_path)
-            print(f"✓ {old_name} -> {new_name}")
+            print(f"✓ {old_name} -> {output_folder_name}/{new_name}")
             success_count += 1
         except Exception as e:
             print(f"✗ 重命名失败 {old_name}: {e}")
     
-    print(f"\n重命名完成，成功 {success_count} 个文件")
+    print(f"\n重命名完成，成功 {success_count} 个文件，已保存到: {output_folder_name}")
 
 def main():
     print("药店拜访文件重命名工具")
@@ -131,10 +136,10 @@ def main():
         print(f"错误：Excel文件不存在 {EXCEL_FILE}")
         return
     
-    # 扫描PNG文件
-    png_files = scan_png_files(TARGET_DIR)
-    if not png_files:
-        print("未找到PNG文件")
+    # 扫描图像文件
+    image_files = scan_image_files(TARGET_DIR)
+    if not image_files:
+        print("未找到图像文件")
         return
     
     # 加载映射数据
@@ -144,18 +149,33 @@ def main():
         return
     
     # 预览更改
-    changes = preview_changes(png_files, mapping)
+    changes = preview_changes(image_files, mapping)
     
     if not changes:
         print("没有需要重命名的文件")
         return
     
+    # 获取原文件夹名称和父目录
+    parent_dir = os.path.dirname(TARGET_DIR)
+    original_folder_name = os.path.basename(TARGET_DIR)
+    
+    # 构建输出文件夹路径（在原文件夹同级）
+    output_folder_name = f"{original_folder_name}{OUTPUT_FOLDER_SUFFIX}"
+    output_dir = os.path.join(parent_dir, output_folder_name)
+    
+    # 创建输出文件夹
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"已创建输出文件夹: {output_dir}")
+    else:
+        print(f"输出文件夹已存在: {output_dir}")
+    
     # 确认执行
-    print(f"\n将重命名 {len(changes)} 个文件")
+    print(f"\n将重命名 {len(changes)} 个文件并保存到: {output_folder_name}")
     confirm = input("确认执行重命名操作？(y/N): ")
     
     if confirm.lower() in ['y', 'yes']:
-        rename_files(TARGET_DIR, changes)
+        rename_files(TARGET_DIR, output_dir, changes)
     else:
         print("操作已取消")
 
