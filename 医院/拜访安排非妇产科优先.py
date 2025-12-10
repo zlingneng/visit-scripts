@@ -161,19 +161,26 @@ def balance_daily_visits(df, visitors, target_visits):
     print(f"拜访量分配: {visitor_targets}")
     return visitor_targets
 
-def select_daily_hospitals(visitor_hospitals, df, doctor_visited, max_hospitals=2):
-    """为拜访人每天选择医院（优先选择剩余医生较多的医院）"""
-    if len(visitor_hospitals) <= max_hospitals:
-        return visitor_hospitals
+def select_daily_hospitals(visitor_hospitals, df, doctor_visited, max_hospitals=2, min_visits_per_hospital=3):
+    """为拜访人每天选择医院（优先选择剩余医生较多的医院）
     
-    # 计算每个医院的剩余医生数量
+    Args:
+        min_visits_per_hospital: 每家医院每天最少拜访条数，剩余医生少于此数的医院会被过滤
+    """
+    # 计算每个医院的剩余医生数量，并过滤掉剩余医生少于min_visits_per_hospital的医院
     hospital_remaining_doctors = {}
     for hospital in visitor_hospitals:
         remaining_doctors = df[
             (df['医院名称'] == hospital) & 
             (~df['医生名称'].isin(doctor_visited))
         ]
-        hospital_remaining_doctors[hospital] = len(remaining_doctors)
+        remaining_count = len(remaining_doctors)
+        # 只保留剩余医生数量 >= min_visits_per_hospital 的医院
+        if remaining_count >= min_visits_per_hospital:
+            hospital_remaining_doctors[hospital] = remaining_count
+    
+    if len(hospital_remaining_doctors) == 0:
+        return []
     
     # 按剩余医生数量从多到少排序，选择前max_hospitals个
     sorted_hospitals = sorted(hospital_remaining_doctors.items(), 
@@ -486,6 +493,21 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
                         total_visits += 1
                         visitor_visit_count[visitor] += 1
                 
+                # 后置验证：检查该医院今天实际安排的条数是否>=3
+                if hospital_visits > 0 and hospital_visits < 3:
+                    # 回滚：移除该医院今天的所有安排
+                    visits_to_remove = [v for v in visits_today if v['医院名称'] == hospital]
+                    for v in visits_to_remove:
+                        visits_today.remove(v)
+                        doctor_visited.discard(v['医生名称'])
+                        total_visits -= 1
+                        visitor_visit_count[visitor] -= 1
+                        dept_key = f"{hospital}_{v['科室']}"
+                        daily_hospital_dept_count[day_str][dept_key] -= 1
+                        if v['医生名称'] in daily_hospital_dept_doctors[day_str][dept_key]:
+                            daily_hospital_dept_doctors[day_str][dept_key].remove(v['医生名称'])
+                    hospital_visits = 0  # 重置该医院的拜访次数
+                
                 hospital_visits_today[hospital] = hospital_visits
             
             # 计算拜访时间
@@ -635,35 +657,54 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
 # 在这里修改所有配置参数
 
 # 每日拜访量配置
-DAILY_VISITS_RANGE = (17, 20)  # 每天拜访条数范围，可根据需要修改
+DAILY_VISITS_RANGE = (12, 17)  # 每天拜访条数范围，可根据需要修改
 
 # 拜访人员选择配置
 # 单个拜访人模式：
 # VISITOR_CONFIG = '令狐思雨'
 # 多个拜访人模式：,['令狐思雨', '周星贤','张令能'] #['令狐思雨', '周星贤'] #
-VISITOR_CONFIG = [ '何勇','张丹凤','胡乐凤','蔡林川']
+VISITOR_CONFIG = [ '何勇','张丹凤','胡乐凤','蔡林川', '周星贤']
 
 # 目标拜访总数
 TARGET_VISITS = 20000
 
 # 文件路径配置
 EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
-OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳4.xlsx'  # 输出Excel文件路径
+OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11.xlsx'  # 输出Excel文件路径
 
 # 拜访日期范围配置（具体日期）
 START_DATE = datetime(2025, 12, 1)  # 开始日期：年-月-日
-END_DATE = datetime(2025, 12, 31)   # 结束日期：年-月-日
+END_DATE = datetime(2025, 12, 11)   # 结束日期：年-月-日
 
 # 目标医院列表（可选，如果不设置则使用所有医院）
-# TARGET_HOSPITALS = [
-#     '贵阳市妇幼保健院',
-#     '贵州医科大学附属医院',
-#     '贵州省人民医院',
-#     # 添加更多医院...
-# ]
+TARGET_HOSPITALS = [
+            '贵州医科大学附属医院',
+            '贵州省人民医院',
+            '贵阳市妇幼保健院',
+            '贵阳市第二人民医院（金阳医院）',
+            '贵阳市第一人民医院',
+            # '贵州中医药大学第一附属医院',
+            # '贵州省职工医院',
+            # '清镇市第一人民医院',
+            # '贵州省中医药大学第二附属医院',
+            # '贵黔国际总医院',
+            # '上海儿童医学中心贵州医院',
+            # '贵州省第二人民医院',
+            # '贵阳市花溪区人民医院',
+            # '贵阳市公共卫生救治中心',
+            # '贵航贵阳医院',
+            # '遵义市第一人民医院',
+            # '遵义医科大学附属医院',
+            #'遵义市中医院',
+            #'贵州航天医院',
+            # '遵义市播州区人民医院',
+            # '遵义市妇幼保健院',
+            # '遵义医科大学第二附属医院',
+            # '遵义市播州区中医院'
+]
 
 # 如果只想使用特定医院，请取消下面这行的注释并填写医院名称
-TARGET_HOSPITALS = None  # 设置为None表示使用所有医院
+#TARGET_HOSPITALS = None  # 设置为None表示使用所有医院
 
 
 

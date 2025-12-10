@@ -161,19 +161,26 @@ def balance_daily_visits(df, visitors, target_visits):
     print(f"拜访量分配: {visitor_targets}")
     return visitor_targets
 
-def select_daily_hospitals(visitor_hospitals, df, doctor_visited, max_hospitals=2):
-    """为拜访人每天选择医院（优先选择剩余医生较多的医院）"""
-    if len(visitor_hospitals) <= max_hospitals:
-        return visitor_hospitals
+def select_daily_hospitals(visitor_hospitals, df, doctor_visited, max_hospitals=2, min_visits_per_hospital=3):
+    """为拜访人每天选择医院（优先选择剩余医生较多的医院）
     
-    # 计算每个医院的剩余医生数量
+    Args:
+        min_visits_per_hospital: 每家医院每天最少拜访条数，剩余医生少于此数的医院会被过滤
+    """
+    # 计算每个医院的剩余医生数量，并过滤掉剩余医生少于min_visits_per_hospital的医院
     hospital_remaining_doctors = {}
     for hospital in visitor_hospitals:
         remaining_doctors = df[
             (df['医院名称'] == hospital) & 
             (~df['医生名称'].isin(doctor_visited))
         ]
-        hospital_remaining_doctors[hospital] = len(remaining_doctors)
+        remaining_count = len(remaining_doctors)
+        # 只保留剩余医生数量 >= min_visits_per_hospital 的医院
+        if remaining_count >= min_visits_per_hospital:
+            hospital_remaining_doctors[hospital] = remaining_count
+    
+    if len(hospital_remaining_doctors) == 0:
+        return []
     
     # 按剩余医生数量从多到少排序，选择前max_hospitals个
     sorted_hospitals = sorted(hospital_remaining_doctors.items(), 
@@ -510,7 +517,25 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
                     chosen_list.pop(0)
                 
                 
-            hospital_visits_today[hospital] = hospital_visits
+                # 后置验证：检查该医院今天实际安排的条数是否>=3
+                if hospital_visits > 0 and hospital_visits < 3:
+                    # 回滚：移除该医院今天的所有安排
+                    visits_to_remove = [v for v in visits_today if v['医院名称'] == hospital]
+                    for v in visits_to_remove:
+                        visits_today.remove(v)
+                        doctor_visited.discard(v['医生名称'])
+                        total_visits -= 1
+                        visitor_visit_count[visitor] -= 1
+                        dept_key = f"{hospital}_{v['科室']}"
+                        daily_hospital_dept_count[day_str][dept_key] -= 1
+                        if v['医生名称'] in daily_hospital_dept_doctors[day_str][dept_key]:
+                            daily_hospital_dept_doctors[day_str][dept_key].remove(v['医生名称'])
+                        # 如果是妇产科，还需要减少妇产科计数
+                        if v['科室'] in ['妇科', '产科', '妇产科', '中医妇产科']:
+                            obgyn_visit_count -= 1
+                    hospital_visits = 0  # 重置该医院的拜访次数
+                
+                hospital_visits_today[hospital] = hospital_visits
             
             # 计算拜访时间
             visits_today = calculate_visit_times(visits_today, visitor)
@@ -724,7 +749,7 @@ def main(visitor_config, daily_visits_range, excel_file, output_file, start_date
 # 在这里修改所有配置参数
 
 # 每日拜访量配置
-DAILY_VISITS_RANGE = (17, 20)  # 每天拜访条数范围，可根据需要修改
+DAILY_VISITS_RANGE = (12, 17)  # 每天拜访条数范围，可根据需要修改
 
 # 拜访人员选择配置
 # 单个拜访人模式：
@@ -737,7 +762,7 @@ TARGET_VISITS = 20000
 
 # 文件路径配置
 EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
-OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳5.xlsx'  # 输出Excel文件路径
+OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳7.xlsx'  # 输出Excel文件路径
 
 # 拜访日期范围配置（具体日期）
 START_DATE = datetime(2025, 12, 1)  # 开始日期：年-月-日
