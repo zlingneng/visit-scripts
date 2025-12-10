@@ -20,13 +20,3 @@
 
 /Users/a000/药店拜访/rename_pharmacy_files.py 改编号
 /Users/a000/拜访规划/tupiandama250623药店.py 打码
-
-'/Users/a000/药店规划/找区域.py',
-'/Users/a000/药店规划/遵义附近药店搜索.py',
-'/Users/a000/药店规划/区域划分.py',
-'/Users/a000/药店规划/路径规划贪心算法.py',
-'/Users/a000/药店规划/拜访时间.py',
-'/Users/a000/药店拜访/process_pharmacy_data_v2.py',
-'/Users/a000/药店拜访/rename_pharmacy_files.py',
-'/Users/a000/拜访规划/tupiandama250623药店.py',
-'/Users/a000/药店拜访/pharmacy_visit_planner_enhanced.py
