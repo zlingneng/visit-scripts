@@ -415,21 +415,27 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
                 # 按科室分组
                 dept_groups = available_doctors.groupby('科室')
                 
-                # 定义妇产科相关科室列表
+                # 定义妇产科相关科室列表（最低优先级）
                 obgyn_departments = ['妇科', '产科', '妇产科', '中医妇产科']
                 
-                # 重新排序科室：优先非妇产科科室
-                sorted_dept_groups = []
+                # 定义优先科室关键词列表（最高优先级）
+                priority_dept_keywords = ['呼吸', '肺', '泌尿', '儿科', '肾', '中医', '全科']
+                
+                # 重新排序科室：优先安排包含关键词的科室，妇产科放最后
+                priority_groups = []
+                normal_groups = []
                 obgyn_groups = []
                 
                 for dept, dept_doctors in dept_groups:
                     if dept in obgyn_departments:
                         obgyn_groups.append((dept, dept_doctors))
+                    elif any(keyword in dept for keyword in priority_dept_keywords):
+                        priority_groups.append((dept, dept_doctors))
                     else:
-                        sorted_dept_groups.append((dept, dept_doctors))
+                        normal_groups.append((dept, dept_doctors))
                 
-                # 将妇产科科室放到最后
-                sorted_dept_groups.extend(obgyn_groups)
+                # 排序顺序：优先科室 > 普通科室 > 妇产科
+                sorted_dept_groups = priority_groups + normal_groups + obgyn_groups
                 
                 hospital_visits = 0
                 for dept, dept_doctors in sorted_dept_groups:
@@ -670,7 +676,7 @@ TARGET_VISITS = 20000
 
 # 文件路径配置
 EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
-OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11.xlsx'  # 输出Excel文件路径
+OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11-2.xlsx'  # 输出Excel文件路径
 
 # 拜访日期范围配置（具体日期）
 START_DATE = datetime(2025, 12, 1)  # 开始日期：年-月-日
