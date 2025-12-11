@@ -6,12 +6,12 @@
 
 /Users/a000/拜访测试/improved_visit_planner_unified.py 单人单月 
 /Users/a000/拜访测试/拜访安排非妇产科优先.py  优先安排非妇产科 按日期 地区 多人 统一规划
-/Users/a000/拜访测试/拜访安排妇产科动态优先.py  批次动态控制妇产科占比
+/Users/a000/拜访测试/拜访安排妇产科动态优先.py  批次动态控制妇产科占比 百分之20以内尽可能多的妇产科（照片）
 /Users/a000/拜访测试/improved_visit_planner_unified_day.py 按日区间 先表格加工：加一列-原序号 日期&医院 筛选导出→按医院筛选导出 加医院编号（每家医院大门照片数）
 
 妇科百分之二十以内
 
-Iphone 照片视频导入：连接手机 图片-Photos Library.photoslibrary 拖拽到目录中 删除导入和照片中
+Iphone 照片视频导入：爱思助手 （手机照片同步完成-Photos Library.photoslibrary 拖拽到目录中 删除导入和照片中）
 
 /Users/a000/拜访测试/create_hospital_folders.py 创建补充文件夹 视频分类
 
@@ -38,12 +38,13 @@ Iphone 照片视频导入：连接手机 图片-Photos Library.photoslibrary 拖
 
 /Users/a000/图片处理/拜访编号处理脚本_安全版.py 从1排序 照片名称与新文件
 
-/Users/a000/图片处理/生成拜访数据脚本.py 表格整理
+/Users/a000/图片处理/生成拜访数据脚本.py 用新文件 表格整理
 
 /Users/a000/图片处理/照片尺寸调整工具.py
 
-/Users/a000/拜访规划/tupiandama250623.py 照片打码
-/Users/a000/拜访规划/tupiandama250623-更大.py
+/Users/a000/拜访规划/tupiandama250623.py 
+/Users/a000/拜访规划/tupiandama250623-更大.py 照片打码
+
+/Users/a000/拜访测试/process_excel_photos.py 组合后排序编号 照片重命名，用批次重命名照片和序号，排序前加顺序
 
 /Users/a000/拜访规划/modify_file_dates.py 修改创建日期
-测试123
