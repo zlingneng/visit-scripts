@@ -1,22 +1,29 @@
-/Users/a000/药店拜访/pharmacy_visit_planner_enhanced.py
+/Users/a000/医院药店拜访/pharmacy_visit_planner_enhanced.py
 
 路径规划
 
 采集地点(应用)  
 药店规划
-/Users/a000/药店规划/找区域.py
-/Users/a000/药店规划/遵义附近药店搜索.py     附近点（api ）
-/Users/a000/药店规划/遵义附近药店搜索.py     附近的附近 没增加多少只有几个
+/Users/a000/医院药店拜访/找区域.py
+/Users/a000/医院药店拜访/遵义附近药店搜索.py     附近点（api ）
+/Users/a000/医院药店拜访/遵义附近药店搜索.py     附近的附近 没增加多少只有几个
 附近点反查（附近的附近api ）
-/Users/a000/药店规划/区域划分.py (#贪心算法) 
-/Users/a000/药店规划/路径规划贪心算法.py
-/Users/a000/药店规划/拜访时间.py
+/Users/a000/医院药店拜访/区域划分.py (#贪心算法) 
+/Users/a000/医院药店拜访/路径规划贪心算法.py
+/Users/a000/医院药店拜访/拜访时间.py
 
-/Users/a000/药店拜访/process_pharmacy_data_v2.py 重排序 同城市内区域优先 防止跨区域来回
+/Users/a000/医院药店拜访/process_pharmacy_data_v2.py 重排序 同城市内区域优先 防止跨区域来回
 
-/Users/a000/图片处理/照片尺寸调整工具.py
+/Users/a000/医院药店拜访/照片尺寸调整工具.py
 
 照片重命名 替换-2为 空
 
-/Users/a000/药店拜访/rename_pharmacy_files.py 改编号
-/Users/a000/拜访规划/tupiandama250623药店.py 打码
+/Users/a000/医院药店拜访/rename_pharmacy_files.py 改编号
+/Users/a000/医院药店拜访/tupiandama250623药店.py 打码
+
+
+存序号-防止删地点导致混乱 
+
+初始地点 附近地点 附近的附近 汇总去重 去草药 去无照片 
+ 分大群-偏远点 贪心算法-拜访时间(开门时间) 规划
+照片--2 自动化裁剪-目测-手工（补照片）改同名 水印 
