@@ -9,7 +9,7 @@ def generate_visit_data():
     """
     
     # 读取主要数据源文件
-    source_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/贵州医生拜访2512-遵义安顺_updated.xlsx'
+    source_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤_updated.xlsx'
     
     try:
         # 读取源数据 - 拜访计划工作表

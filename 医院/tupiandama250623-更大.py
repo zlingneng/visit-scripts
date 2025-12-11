@@ -181,8 +181,8 @@ def add_text_to_images(image_folder, text_list):
             print(f"找不到图片文件：{image_file}")
 
 
-excel_file_path = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/贵州医生拜访2512-遵义安顺_updated-整理.xlsx'
-image_folder = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片3'
-image_folderout = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片'
+excel_file_path = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤_updated-整理.xlsx'
+image_folder = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/照片3'
+image_folderout = r'/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/照片4'
 text_list = read_excel_data(excel_file_path)
 add_text_to_images(image_folder, text_list)

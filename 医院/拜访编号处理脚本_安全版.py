@@ -15,9 +15,9 @@ def process_visit_numbers():
     """
     
     # 文件路径
-    excel_path = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/贵州医生拜访2512-遵义安顺.xlsx"
-    image_folder = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片"
-    new_image_folder = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片2"
+    excel_path = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤.xlsx"
+    image_folder = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/照片"
+    new_image_folder = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/照片2"
     
     try:
         # 读取Excel文件的拜访计划表 - 使用xlrd引擎

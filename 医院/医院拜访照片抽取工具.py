@@ -340,9 +340,9 @@ def process_hospital_photos(hospital_counts, hospital_codes, base_photo_dir, out
 
 def main():
     # 配置文件路径
-    excel_path = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/贵州医生拜访2512-遵义安顺.xlsx'
+    excel_path = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤.xlsx'
     base_photo_dir = '/Users/a000/Pictures/医院'
-    output_dir = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-遵义安顺/照片'
+    output_dir = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/照片'
     
     print("开始处理医院拜访照片抽取任务...")
     
