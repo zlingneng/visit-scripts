@@ -419,7 +419,7 @@ def greedy_visit_planning(df, df_addr, working_days, visitors, target_visits, da
                 obgyn_departments = ['妇科', '产科', '妇产科', '中医妇产科']
                 
                 # 定义优先科室关键词列表（最高优先级）
-                priority_dept_keywords = ['呼吸', '肺', '泌尿', '儿科', '肾', '中医', '全科']
+                priority_dept_keywords = ['呼吸', '肺', '泌尿', '儿科', '肾', '中医', '全科','老年','儿内','小儿普胸泌外科','男科']
                 
                 # 重新排序科室：优先安排包含关键词的科室，妇产科放最后
                 priority_groups = []
