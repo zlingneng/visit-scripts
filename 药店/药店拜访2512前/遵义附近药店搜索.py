@@ -7,17 +7,17 @@ import pandas as pd
 from datetime import datetime
 
 # 配置参数
-excel_file_path = '/Users/a000/药店规划/遵义附近药店数据_20250807.xlsx'  # 输入文件
-out_file_path = f'/Users/a000/药店规划/遵义附近药店数据_{datetime.now().strftime("%Y%m%d_%H%M")}.xlsx'  # 输出文件
-log_file_path = f'/Users/a000/药店规划/遵义市药店查询_{datetime.now().strftime("%Y%m%d_%H%M")}.log'  # 日志文件
+excel_file_path = '/Users/a000/Documents/济生/药店拜访25/贵州药店查询结果_20251213.xlsx'  # 输入文件
+out_file_path = f'/Users/a000/Documents/济生/药店拜访25/贵州附近药店数据_{datetime.now().strftime("%Y%m%d_%H%M")}.xlsx'  # 输出文件
+log_file_path = f'/Users/a000/Documents/济生/药店拜访25/贵州药店查询_{datetime.now().strftime("%Y%m%d_%H%M")}.log'  # 日志文件
 
 # 设置百度地图API密钥等相关参数
 ak = "9quP8V19nrZZdtTPu3Dgc66kvPSnV0rf"
 radius = "1000"
 query = "药店"
 page_size = 20
-api_count = 12139  # 当前已使用的API次数
-max_api_calls = 20000  # 最大API调用次数
+api_count = 15312  # 当前已使用的API次数
+max_api_calls = 50000  # 最大API调用次数
 
 # 设置日志
 logging.basicConfig(

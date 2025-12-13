@@ -25,6 +25,9 @@ DEFAULT_PHOTO_PATH = "/Users/a000/Pictures/huawei251210/IMG_20251210_160312.jpg"
 # 请到 https://lbsyun.baidu.com/apiconsole/key 申请
 BAIDU_AK = "9quP8V19nrZZdtTPu3Dgc66kvPSnV0rf"  # 在这里填入你的百度AK，例如："你的百度AK"
 
+# 搜索附近药店的半径（单位：米）
+SEARCH_RADIUS = 300
+
 
 def get_exif_data(image_path):
     """读取图片的 EXIF 信息"""
@@ -62,17 +65,20 @@ def get_gps_info(exif):
             # 格式2 (标准): ((26, 1), (34, 1), (43660125, 1000000)) - 分数形式
             # 格式3 (PIL IFDRational): (IFDRational(26,1), IFDRational(34,1), IFDRational(43660125,1000000)) - IFDRational类型
             
-            # 检查第一个元素是否可下标访问（格式2）
-            if hasattr(value[0], '__getitem__') and not isinstance(value[0], (str, bytes)):
-                # 格式2：分数形式 (分子, 分母)
-                d = value[0][0] / value[0][1] if value[0][1] != 0 else 0
-                m = value[1][0] / value[1][1] if value[1][1] != 0 else 0
-                s = value[2][0] / value[2][1] if value[2][1] != 0 else 0
-            else:
-                # 格式1和3：直接转换为浮点数（包括IFDRational类型）
+            try:
+                # 首先尝试直接转换为浮点数（格式1和3）
                 d = float(value[0])
                 m = float(value[1])
                 s = float(value[2])
+            except (TypeError, AttributeError):
+                # 如果失败，尝试分数形式处理（格式2）
+                try:
+                    d = value[0][0] / value[0][1] if value[0][1] != 0 else 0
+                    m = value[1][0] / value[1][1] if value[1][1] != 0 else 0
+                    s = value[2][0] / value[2][1] if value[2][1] != 0 else 0
+                except Exception:
+                    # 如果都失败，返回None
+                    return None
             
             return d + (m / 60.0) + (s / 3600.0)
         except Exception as e:
@@ -217,6 +223,70 @@ def reverse_geocode_baidu(bd_lon, bd_lat, ak):
         print(f"   ❌ 调用逆地理编码API出错: {e}")
 
 
+def search_nearby_pharmacies(bd_lon, bd_lat, radius, ak):
+    """
+    使用百度地图POI搜索API查询附近的药店
+    API文档: https://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-placeapi
+    
+    参数:
+        bd_lon: 百度坐标系经度
+        bd_lat: 百度坐标系纬度
+        radius: 搜索半径（单位：米）
+        ak: 百度地图AK
+    """
+    if bd_lon is None or bd_lat is None:
+        print("\n❌ 无法搜索附近药店：坐标为空")
+        return
+    
+    if not ak:
+        print("\n⚠️  未配置百度AK，无法搜索附近药店")
+        return
+
+    # POI搜索API
+    base_url = "http://api.map.baidu.com/place/v2/search"
+    params = {
+        "ak": ak,
+        "output": "json",
+        "query": "药店",
+        "location": f"{bd_lat},{bd_lon}",  # 百度API要求格式是"纬度,经度"
+        "radius": radius,
+        "scope": 2,  # 返回详细信息
+        "page_size": 10,  # 每页结果数
+        "page_num": 0  # 页码
+    }
+    
+    url = base_url + "?" + parse.urlencode(params)
+    print(f"\n📍 步骤3: 搜索附近药店（{radius}米范围内）")
+    
+    try:
+        with request.urlopen(url, timeout=10) as resp:
+            data = resp.read().decode("utf-8")
+        obj = json.loads(data)
+        
+        if obj.get("status") == 0:
+            results = obj.get("results", [])
+            if results:
+                print(f"\n✅ 搜索成功！共找到{len(results)}家药店:")
+                for i, poi in enumerate(results, 1):
+                    name = poi.get("name", "")
+                    address = poi.get("address", "")
+                    tel = poi.get("telephone", "")
+                    distance = poi.get("detail_info", {}).get("distance", "")
+                    
+                    print(f"\n   {i}. {name}")
+                    print(f"      地址: {address}")
+                    if tel:
+                        print(f"      电话: {tel}")
+                    if distance:
+                        print(f"      距离: 约{distance}米")
+            else:
+                print(f"\n   ❌ 未找到附近药店")
+        else:
+            print(f"   ❌ 搜索失败: status={obj.get('status')}, message={obj.get('message', '未知错误')}")
+    except Exception as e:
+        print(f"   ❌ 调用POI搜索API出错: {e}")
+
+
 def main():
     print("=" * 70)
     print("📷 照片GPS信息读取工具（百度地图版）")
@@ -248,14 +318,14 @@ def main():
     for k, v in gps_info.items():
         print(f"   {k}: {v}")
     
-    # 坐标转换和地址查询
+    # 坐标转换和药店搜索
     if BAIDU_AK:
         # 步骤1: 坐标转换
         bd_lon, bd_lat = convert_wgs84_to_bd09(lon, lat, BAIDU_AK)
         
-        # 步骤2: 逆地理编码
+        # 步骤2: 搜索附近药店
         if bd_lon and bd_lat:
-            reverse_geocode_baidu(bd_lon, bd_lat, BAIDU_AK)
+            search_nearby_pharmacies(bd_lon, bd_lat, SEARCH_RADIUS, BAIDU_AK)
         else:
             print("\n❌ 坐标转换失败，无法查询地址")
     else:
