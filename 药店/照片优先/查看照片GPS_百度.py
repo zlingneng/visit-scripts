@@ -57,21 +57,22 @@ def get_gps_info(exif):
     def _convert_to_degrees(value):
         """将GPS坐标转换为十进制度"""
         try:
-            # 兼容两种格式：
+            # 兼容三种格式：
             # 格式1 (华为等): (26.0, 34.0, 43.660125) - 直接是度分秒的浮点数
             # 格式2 (标准): ((26, 1), (34, 1), (43660125, 1000000)) - 分数形式
+            # 格式3 (PIL IFDRational): (IFDRational(26,1), IFDRational(34,1), IFDRational(43660125,1000000)) - IFDRational类型
             
-            # 检查第一个元素的类型来判断格式
-            if isinstance(value[0], (int, float)):
-                # 格式1：直接是浮点数
-                d = float(value[0])
-                m = float(value[1])
-                s = float(value[2])
-            else:
+            # 检查第一个元素是否可下标访问（格式2）
+            if hasattr(value[0], '__getitem__') and not isinstance(value[0], (str, bytes)):
                 # 格式2：分数形式 (分子, 分母)
                 d = value[0][0] / value[0][1] if value[0][1] != 0 else 0
                 m = value[1][0] / value[1][1] if value[1][1] != 0 else 0
                 s = value[2][0] / value[2][1] if value[2][1] != 0 else 0
+            else:
+                # 格式1和3：直接转换为浮点数（包括IFDRational类型）
+                d = float(value[0])
+                m = float(value[1])
+                s = float(value[2])
             
             return d + (m / 60.0) + (s / 3600.0)
         except Exception as e:
