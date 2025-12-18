@@ -6,9 +6,9 @@ from collections import defaultdict
 from datetime import datetime
 
 # 配置路径
-EXCEL_FILE_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤.xlsx"
-VIDEO_BASE_PATH = "/Users/a000/Pictures/医院"
-OUTPUT_PHOTO_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/科室"
+EXCEL_FILE_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能.xlsx"
+VIDEO_BASE_PATH = "/Users/a000/Pictures/医院2512"
+OUTPUT_PHOTO_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/科室"
 
 # 配置参数
 TOTAL_PHOTOS_NEEDED = 140  # 总共需要截取的照片数
