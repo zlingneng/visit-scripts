@@ -21,17 +21,17 @@ MAX_API_CALLS = 30000  # 最大API调用次数限制（可配置）
 REQUEST_DELAY = 0.5  # 每两次API请求之间的延迟时间（秒），可配置
 
 # 区划表配置
-DIVISION_FILE_PATH = '/Users/a000/Documents/济生/药店拜访25/附件2贵州省乡级以上政区名称及行政区划代码表.xls'
+DIVISION_FILE_PATH = '/Users/a000/Documents/济生/药店拜访25/福建/福建省市区划.xls'
 
 # 输出配置
-TARGET_CITIES = ["贵州省"]  # 目标城市列表，支持配置多个市（如["贵阳市", "遵义市"]）或全省（["贵州省"]）
+TARGET_CITIES = ["福建省"]  # 目标城市列表，支持配置多个市（如["贵阳市", "遵义市"]）或全省（["贵州省"]）
 OUTPUT_DIR = os.path.dirname(DIVISION_FILE_PATH)  # 输出到区划表格的同级别文件夹
 DATE_SUFFIX = datetime.now().strftime("%Y%m%d")  # 日期后缀
 
 # 生成输出文件名
-if len(TARGET_CITIES) == 1 and TARGET_CITIES[0] == "贵州省":
+if len(TARGET_CITIES) == 1 and TARGET_CITIES[0] == "福建省":
     # 全省查询
-    output_prefix = "贵州"
+    output_prefix = "福建"
 elif len(TARGET_CITIES) == 1:
     # 单个城市查询
     output_prefix = TARGET_CITIES[0].replace('市', '')
@@ -175,7 +175,7 @@ def read_divisions():
             full_region = f"{city}{county}"
             
             # 判断是否符合目标城市
-            if "贵州省" in TARGET_CITIES:
+            if "福建省" in TARGET_CITIES:
                 # 如果是全省查询，直接添加
                 divisions.append(full_region)
             else:
@@ -206,7 +206,7 @@ if __name__ == "__main__":
                        encoding='utf-8')
     
     print("=" * 60)
-    print("贵州省药店查询系统")
+    print("福建省药店查询系统")
     print("=" * 60)
     print(f"目标城市: {', '.join(TARGET_CITIES)}")
     print(f"API初始使用量: {API_COUNT}")

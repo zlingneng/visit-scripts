@@ -12,13 +12,17 @@ from pathlib import Path
 # 在这里修改所有配置参数
 
 # Excel文件路径
-EXCEL_FILE_PATH = "/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251105_194340.xlsx"
+EXCEL_FILE_PATH = "/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx"
 
 # 目标图片文件夹路径
-TARGET_FOLDER_PATH = "/Users/a000/Pictures/医院2511"
+TARGET_FOLDER_PATH = "/Users/a000/Pictures/医院2512"
 
 # Excel工作表名称
 SHEET_NAME = "导出筛选结果"
+
+# 城市筛选配置：只处理指定城市的医院，为空列表则处理所有城市
+# 示例：['贵阳'] - 只处理贵阳的医院；[] - 处理所有城市
+CITY_CONFIG = ['贵阳']
 
 # ==================== 配置结束 ====================
 
@@ -39,6 +43,15 @@ def create_hospital_folders():
         df = pd.read_excel(EXCEL_FILE_PATH, sheet_name=SHEET_NAME)
         print(f"成功读取数据，共{len(df)}条记录")
         print(f"列名：{list(df.columns)}")
+        
+        # 根据城市配置筛选数据
+        if CITY_CONFIG:
+            df = df[df['所属城市'].isin(CITY_CONFIG)]
+            print(f"根据城市筛选条件{', '.join(CITY_CONFIG)}，筛选后剩余{len(df)}条记录")
+            
+            if len(df) == 0:
+                print("筛选后没有符合条件的数据，程序将退出")
+                return
         
         # 获取唯一的医院名称
         hospitals = df['医院名称'].unique()

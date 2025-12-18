@@ -217,21 +217,49 @@ def extract_frame_at_time(mov_path, hospital_code, mov_filename, target_time_sec
         print(f"处理视频文件时出错: {e}")
         return None
 
-def process_hospital_photos(hospital_counts, hospital_codes, base_photo_dir, output_dir):
+def process_hospital_photos(hospital_counts, hospital_codes, base_photo_dir, output_dir, supplementary_photos_config=None):
     """
     为每家医院处理照片抽取
+    supplementary_photos_config: 字典，格式为 {'医院编号': 补充数量}
     """
     os.makedirs(output_dir, exist_ok=True)
     
-    for hospital_name, count in hospital_counts.items():
+    # 确保补充照片配置是字典类型
+    if supplementary_photos_config is None:
+        supplementary_photos_config = {}
+    
+    # 确定需要处理的医院列表
+    hospitals_to_process = []
+    
+    if supplementary_photos_config:
+        # 如果有补充照片配置，只处理配置中指定的医院
+        print(f"补充照片配置已设置，将只处理以下医院编号: {', '.join(supplementary_photos_config.keys())}")
+        
+        # 找出医院名称与补充配置中编号对应的医院
+        for hospital_name, count in hospital_counts.items():
+            hospital_code = hospital_codes.get(hospital_name, '000')
+            if hospital_code in supplementary_photos_config:
+                hospitals_to_process.append((hospital_name, count, hospital_code))
+    else:
+        # 没有补充照片配置，处理所有医院
+        hospitals_to_process = [(hospital_name, count, hospital_codes.get(hospital_name, '000')) 
+                              for hospital_name, count in hospital_counts.items()]
+    
+    # 处理需要抽取照片的医院
+    for hospital_name, count, hospital_code in hospitals_to_process:
         print(f"\n处理医院: {hospital_name} (数据条数: {count})")
         
-        # 计算需要抽取的照片数量
-        photos_needed = math.ceil(2 * count)
-        # 如果需要生成的照片数少于6张，按照6张生成
-        if photos_needed < 6:
-            photos_needed = 6
-        print(f"需要抽取照片数量: {photos_needed}")
+        if supplementary_photos_config and hospital_code in supplementary_photos_config:
+            # 补充照片配置生效，只抽取补充的照片数量
+            photos_needed = supplementary_photos_config[hospital_code]
+            print(f"补充照片配置生效，只抽取补充照片数量: {photos_needed}")
+        else:
+            # 没有补充照片配置，按照原来的逻辑计算
+            photos_needed = math.ceil(2 * count)
+            # 如果需要生成的照片数少于6张，按照6张生成
+            if photos_needed < 6:
+                photos_needed = 6
+            print(f"需要抽取照片数量: {photos_needed}")
         
         # 构建医院大门文件夹路径
         hospital_dir = os.path.join(base_photo_dir, hospital_name, '大门')
@@ -340,9 +368,17 @@ def process_hospital_photos(hospital_counts, hospital_codes, base_photo_dir, out
 
 def main():
     # 配置文件路径
-    excel_path = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤.xlsx'
-    base_photo_dir = '/Users/a000/Pictures/医院'
-    output_dir = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11徐桂莲何玲周星贤/照片'
+    excel_path = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能.xlsx'
+    base_photo_dir = '/Users/a000/Pictures/医院2512'
+    # 输出目录设为输入文件同级别文件夹下的"照片"文件夹
+    output_dir = os.path.join(os.path.dirname(excel_path), '照片')
+    
+    # 补充照片配置：医院编号 -> 需要补充的照片数量
+    # 如果不需要补充照片，可以留空或设为{}
+    supplementary_photos_config = {
+        # '医院编号': 补充数量,
+        '3': 6,  # 示例：为编号1的医院补充3张照片
+    }
     
     print("开始处理医院拜访照片抽取任务...")
     
@@ -360,7 +396,7 @@ def main():
     
     # 3. 处理照片抽取
     print("\n=== 步骤3: 处理照片抽取 ===")
-    process_hospital_photos(hospital_counts, hospital_codes, base_photo_dir, output_dir)
+    process_hospital_photos(hospital_counts, hospital_codes, base_photo_dir, output_dir, supplementary_photos_config)
     
     print("\n任务完成！")
 

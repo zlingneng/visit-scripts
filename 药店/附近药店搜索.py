@@ -9,7 +9,7 @@ import os
 import time
 
 # 配置参数
-excel_file_path = '/Users/a000/Documents/济生/药店拜访25/贵州药店查询结果_20251213.xlsx'  # 输入文件
+excel_file_path = '/Users/a000/Documents/济生/药店拜访25/福建/福建药店查询结果_20251215.xlsx'  # 输入文件
 
 # 获取输入文件所在目录
 input_dir = os.path.dirname(excel_file_path)
@@ -25,7 +25,7 @@ query = "药店"
 page_size = 20
 api_count = 15490  # 当前已使用的API次数
 max_api_calls = 50000  # 最大API调用次数
-request_delay = 0.05  # API调用之间的延迟时间（秒），可根据需要调整
+request_delay = 0.1  # API调用之间的延迟时间（秒），可根据需要调整
 
 # 设置日志
 logging.basicConfig(

@@ -5,7 +5,7 @@ import math
 import pandas as pd
 
 # 配置部分
-EXCEL_FILE_PATH = '/Users/a000/Documents/济生/药店拜访25/附近药店数据_20251213_2229.xlsx'
+EXCEL_FILE_PATH = '/Users/a000/Documents/济生/药店拜访25/福建/附近药店数据_20251215_2216.xlsx'
 SHEET_NAME = 'Sheet1'
 INPUT_COLUMN = '经纬度'  # 百度坐标所在列（第7列）
 OUTPUT_COLUMN = '华为经纬度'  # 华为照片经纬度系统(WGS84)所在列（新列）
