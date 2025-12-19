@@ -8,12 +8,27 @@
 
 import pandas as pd
 import os
+import json
 import random
 import cv2
 import math
 from pathlib import Path
 import numpy as np
 from scipy.stats import beta
+import json
+
+# =========================================
+# 脚本参数配置区域 - 请在此处修改参数
+# =========================================
+# Excel文件路径 - 如果不填写，则从配置文件读取
+EXCEL_FILE_PATH = None  # 示例: "/Users/a000/Documents/医院拜访.xlsx"
+
+# 配置文件路径
+CONFIG_FILE = "/Users/a000/医院药店拜访/医院/baifang_config.json"
+
+# 基础照片目录
+BASE_PHOTO_DIR = '/Users/a000/Pictures/医院2512'
+
 
 def analyze_hospital_data(excel_path, sheet_name='拜访计划'):
     """
@@ -367,12 +382,41 @@ def process_hospital_photos(hospital_counts, hospital_codes, base_photo_dir, out
         print(f"成功抽取{success_count}/{photos_needed}张照片")
 
 def main():
-    # 配置文件路径
-    excel_path = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能.xlsx'
-    base_photo_dir = '/Users/a000/Pictures/医院2512'
+    global EXCEL_FILE_PATH, CONFIG_FILE, BASE_PHOTO_DIR
+    
+    # 获取Excel文件路径
+    excel_path = EXCEL_FILE_PATH
+    
+    # 如果没有在配置区填写，则从配置文件读取
+    if excel_path is None or not excel_path:
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                excel_path = config.get('output_file', '')
+            if excel_path:
+                print(f"从配置文件读取Excel路径: {excel_path}")
+        except Exception as e:
+            print(f"读取配置文件失败: {e}")
+            excel_path = ''
+    else:
+        print(f"使用配置区指定的Excel路径: {excel_path}")
+    
+    # 验证路径是否存在
+    if not excel_path:
+        print("错误：未提供有效的Excel文件路径")
+        return
+        
+    if not os.path.exists(excel_path):
+        print(f"错误：Excel 文件不存在: {excel_path}")
+        return
+    
     # 输出目录设为输入文件同级别文件夹下的"照片"文件夹
     output_dir = os.path.join(os.path.dirname(excel_path), '照片')
     
+    # 基础照片目录
+    base_photo_dir = BASE_PHOTO_DIR
+    
+     
     # 补充照片配置：医院编号 -> 需要补充的照片数量
     # 如果不需要补充照片，可以留空或设为{}
     supplementary_photos_config = {

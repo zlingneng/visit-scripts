@@ -9,6 +9,7 @@ from collections import defaultdict
 import openpyxl
 from openpyxl import Workbook
 import os
+import json
 
 # 使用 chinese_calendar 包来处理中国节假日
 try:
@@ -678,7 +679,7 @@ TARGET_VISITS = 20000
 # 文件路径配置
 EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
 # 生成输出路径并写入配置文件
-output_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11-2.xlsx'
+output_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳21-31.xlsx'
 OUTPUT_FILE = output_file
 
 # 将路径写入配置文件，供后续同一批次脚本读取
@@ -689,8 +690,8 @@ config_path = os.path.join(os.getcwd(), 'baifang_config.json')
 with open(config_path, 'w', encoding='utf-8') as f:
     json.dump({'output_file': output_file}, f, ensure_ascii=False, indent=2)
 # 拜访日期范围配置（具体日期）
-START_DATE = datetime(2025, 12, 1)  # 开始日期：年-月-日
-END_DATE = datetime(2025, 12, 20)   # 结束日期：年-月-日
+START_DATE = datetime(2025, 12, 21)  # 开始日期：年-月-日
+END_DATE = datetime(2025, 12, 31)   # 结束日期：年-月-日
 
 # 目标医院列表（可选，如果不设置则使用所有医院）
 TARGET_HOSPITALS = [
@@ -699,6 +700,7 @@ TARGET_HOSPITALS = [
             # '贵阳市妇幼保健院',
             # '贵阳市第二人民医院（金阳医院）',
             # '贵阳市第一人民医院',
+
             '贵州中医药大学第一附属医院',
             '贵州省职工医院',
             '清镇市第一人民医院',
@@ -710,6 +712,7 @@ TARGET_HOSPITALS = [
             '贵阳市公共卫生救治中心',
             '贵航贵阳医院',
             '中山大学附属第一医院贵阳医院',
+
             # '遵义市第一人民医院',
             # '遵义医科大学附属医院',
             #'遵义市中医院',
