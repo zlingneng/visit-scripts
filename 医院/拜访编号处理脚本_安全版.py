@@ -15,10 +15,11 @@ def process_visit_numbers():
     """
     
     # 文件路径
-    excel_path = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-余荷英/贵州医生拜访251201-20-余荷英.xlsx"
-    image_folder = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-余荷英/照片"
-    new_image_folder = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-余荷英/照片2"
-    
+    excel_path = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能.xlsx"
+    # 根据输入的Excel文件路径自动生成图片文件夹路径
+    base_dir = os.path.dirname(excel_path)
+    image_folder = os.path.join(base_dir, "照片")
+    new_image_folder = os.path.join(base_dir, "照片2")
     try:
         # 读取Excel文件的拜访计划表 - 使用xlrd引擎
         print("正在读取Excel文件...")

@@ -8,6 +8,7 @@ import random
 from collections import defaultdict
 import openpyxl
 from openpyxl import Workbook
+import os
 
 # 使用 chinese_calendar 包来处理中国节假日
 try:
@@ -676,8 +677,17 @@ TARGET_VISITS = 20000
 
 # 文件路径配置
 EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
-OUTPUT_FILE = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11-2.xlsx'  # 输出Excel文件路径
+# 生成输出路径并写入配置文件
+output_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳1-11-2.xlsx'
+OUTPUT_FILE = output_file
 
+# 将路径写入配置文件，供后续同一批次脚本读取
+
+
+# 将配置文件放到项目目录下，方便后续其他脚本读取
+config_path = os.path.join(os.getcwd(), 'baifang_config.json')
+with open(config_path, 'w', encoding='utf-8') as f:
+    json.dump({'output_file': output_file}, f, ensure_ascii=False, indent=2)
 # 拜访日期范围配置（具体日期）
 START_DATE = datetime(2025, 12, 1)  # 开始日期：年-月-日
 END_DATE = datetime(2025, 12, 20)   # 结束日期：年-月-日

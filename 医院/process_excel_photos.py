@@ -12,15 +12,19 @@ import shutil
 
 # ==================== 配置区域 ====================
 # Excel文件路径
-EXCEL_FILE = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512贵阳遵义安顺.xlsx"
+EXCEL_FILE = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20张令能余荷英.xlsx"
 # Sheet名称
-SHEET_NAME = "Sheet1 (2)"
+SHEET_NAME = "Sheet1"
+# 根据输入文件路径自动推导其他路径
+base_dir = os.path.dirname(EXCEL_FILE)
+file_prefix = os.path.splitext(os.path.basename(EXCEL_FILE))[0]
+
 # 照片文件夹路径
-PHOTO_FOLDER = "/Users/a000/Documents/济生/医院拜访25/2512/照片"
+PHOTO_FOLDER = os.path.join(base_dir, "照片")
 # 新照片文件夹路径
-NEW_PHOTO_FOLDER = "/Users/a000/Documents/济生/医院拜访25/2512/照片_改名"
+NEW_PHOTO_FOLDER = os.path.join(base_dir, "照片4")
 # 输出Excel文件路径
-OUTPUT_EXCEL = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512贵阳遵义安顺_处理后.xlsx"
+OUTPUT_EXCEL = os.path.join(base_dir, f"{file_prefix}_处理后.xlsx")
 # =================================================
 
 def main():

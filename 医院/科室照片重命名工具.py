@@ -19,13 +19,14 @@ from collections import defaultdict
 
 # ==================== 配置部分 ====================
 # Excel文件路径
-EXCEL_FILE_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-余荷英/贵州医生拜访251201-20-余荷英.xlsx"
+EXCEL_FILE_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能.xlsx"
 
-# 照片文件夹路径
-PHOTO_FOLDER_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-余荷英/科室"
+# 根据输入的Excel文件路径自动生成照片文件夹路径
+base_dir = os.path.dirname(EXCEL_FILE_PATH)
+PHOTO_FOLDER_PATH = os.path.join(base_dir, "科室")
 
 # 目标文件夹路径（重命名后的照片将保存到这里）
-TARGET_FOLDER_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-余荷英/重命名后科室照片"
+TARGET_FOLDER_PATH = os.path.join(base_dir, "重命名后科室照片")
 
 # ==================== 脚本主体 ====================
 
