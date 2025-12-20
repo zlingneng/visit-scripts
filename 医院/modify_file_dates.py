@@ -12,9 +12,9 @@ import argparse
 
 # 配置参数
 CONFIG = {
-    'target_dir': '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512贵阳遵义安顺-送审',
-    'target_date': '20251211',  # 目标日期，格式：YYYYMMDD
-    'target_hour': 19,  # 目标小时，0-23
+    'target_dir': '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20张令能余荷英_送审',
+    'target_date': '20251220',  # 目标日期，格式：YYYYMMDD
+    'target_hour': 20,  # 目标小时，0-23
     'time_window': 10,  # 时间窗口，前后30分钟
 }
 

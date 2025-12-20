@@ -539,11 +539,8 @@ def save_to_excel(visit_plan, output_file, visitor_names):
     """保存拜访计划到Excel文件"""
     df_result = pd.DataFrame(visit_plan)
     
-    # 添加原序号列，从1开始递增
-    df_result['原序号'] = range(1, len(df_result) + 1)
-    
-    # 确保列的顺序：原序号 日期 医院名称 地址 拜访人 科室 医生名称 拜访开始时间 拜访结束时间
-    column_order = ['日期', '医院名称', '地址', '拜访人', '科室', '医生名称', '拜访开始时间', '拜访结束时间','原序号']
+    # 确保列的顺序：日期 医院名称 地址 拜访人 科室 医生名称 拜访开始时间 拜访结束时间
+    column_order = ['日期', '医院名称', '地址', '拜访人', '科室', '医生名称', '拜访开始时间', '拜访结束时间']
     df_result = df_result[column_order]
     
     # 按日期、拜访人和拜访开始时间排序
@@ -551,6 +548,9 @@ def save_to_excel(visit_plan, output_file, visitor_names):
     df_result = df_result.sort_values(['日期', '拜访人', '拜访开始时间'])
     df_result['日期'] = df_result['日期'].dt.strftime('%Y/%m/%d')
     
+    # 添加原序号列，从1开始递增
+    df_result['原序号'] = range(1, len(df_result) + 1)
+
     # 保存到Excel
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
         df_result.to_excel(writer, sheet_name='拜访计划', index=False)
