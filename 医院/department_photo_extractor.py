@@ -2,13 +2,20 @@ import pandas as pd
 import os
 import random
 import subprocess
+import json
 from collections import defaultdict
 from datetime import datetime
 
+# 读取配置文件
+CONFIG_FILE_PATH = "/Users/a000/医院药店拜访/医院/baifang_config.json"
+with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
+    config = json.load(f)
+
 # 配置路径
-EXCEL_FILE_PATH = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能.xlsx"
+EXCEL_FILE_PATH = config.get("output_file")
 VIDEO_BASE_PATH = "/Users/a000/Pictures/医院2512"
 OUTPUT_PHOTO_PATH = os.path.join(os.path.dirname(EXCEL_FILE_PATH), "科室")
+LOG_FILE_PATH = os.path.join(os.path.dirname(EXCEL_FILE_PATH), "科室照片数量统计.log")
 
 # 配置参数
 TOTAL_PHOTOS_NEEDED = 140  # 总共需要截取的照片数
@@ -300,6 +307,39 @@ def process_department_photos(dept_with_videos, photo_allocation, hospital_codes
         
         print(f"科室 {hospital_name}/{dept_name} 成功抽取{success_count}/{num_photos}张照片")
 
+def write_hospital_dept_log(hospital_dept_counts):
+    """
+    将医院科室照片最大数量写入log文件
+    按医院和科室排序
+    """
+    try:
+        # 按医院和科室排序
+        sorted_hospitals = sorted(hospital_dept_counts.items())
+        
+        with open(LOG_FILE_PATH, 'w', encoding='utf-8') as f:
+            f.write("医院科室照片最大数量统计（按医院科室排序）\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"统计时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Excel文件：{os.path.basename(EXCEL_FILE_PATH)}\n")
+            f.write("\n")
+            f.write("医院名称\t科室名称\t照片最大数量\n")
+            f.write("-" * 50 + "\n")
+            
+            for hospital, depts in sorted_hospitals:
+                sorted_depts = sorted(depts.items())
+                for dept, count in sorted_depts:
+                    f.write(f"{hospital}\t{dept}\t{count}\n")
+            
+            f.write("\n")
+            f.write("统计说明：\n")
+            f.write("1. 照片最大数量根据每天非最早最晚的拜访记录统计\n")
+            f.write("2. 每个科室最多可抽取的照片数不超过拜访总量\n")
+        
+        print(f"\nlog文件已生成：{LOG_FILE_PATH}")
+    except Exception as e:
+        print(f"生成log文件时出错: {e}")
+
+
 def main():
     print("开始处理医院科室照片抽取...")
     
@@ -310,26 +350,30 @@ def main():
         print("无法分析Excel数据，程序退出。")
         return
     
-    # 2. 获取医院编号映射
-    print("2. 获取医院编号映射...")
+    # 2. 生成医院科室照片数量统计log
+    print("2. 生成医院科室照片数量统计log...")
+    write_hospital_dept_log(hospital_dept_counts)
+    
+    # 3. 获取医院编号映射
+    print("3. 获取医院编号映射...")
     hospital_codes = get_hospital_code_mapping()
     
-    # 3. 扫描科室视频文件
-    print("3. 扫描科室视频文件...")
+    # 4. 扫描科室视频文件
+    print("4. 扫描科室视频文件...")
     dept_with_videos = scan_department_videos(hospital_dept_counts)
     if not dept_with_videos:
         print("未找到任何有视频文件的科室，程序退出。")
         return
     
-    # 4. 随机分配照片数量
-    print("4. 随机分配照片数量...")
+    # 5. 随机分配照片数量
+    print("5. 随机分配照片数量...")
     photo_allocation = distribute_photos_randomly(dept_with_videos, TOTAL_PHOTOS_NEEDED)
     if not photo_allocation:
         print("无法分配照片数量，程序退出。")
         return
     
-    # 5. 处理照片抽取和保存
-    print("5. 处理照片抽取和保存...")
+    # 6. 处理照片抽取和保存
+    print("6. 处理照片抽取和保存...")
     process_department_photos(dept_with_videos, photo_allocation, hospital_codes)
     
     print("照片抽取完成！")

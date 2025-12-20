@@ -563,6 +563,16 @@ def save_to_excel(visit_plan, output_file, visitor_names):
         
         df_stats = pd.DataFrame(stats, columns=['统计项', '数值'])
         df_stats.to_excel(writer, sheet_name='统计信息', index=False)
+        
+        # 添加导出计数_列B sheet
+        # 计算各医院的拜访天数去重计数
+        hospital_visit_counts = df_result.groupby('医院名称')['日期'].nunique().reset_index(name='拜访天数去重计数')
+        # 按拜访天数去重计数从大到小排序
+        hospital_visit_counts = hospital_visit_counts.sort_values('拜访天数去重计数', ascending=False)
+        # 添加编号列（从1开始递增）
+        hospital_visit_counts.insert(0, '编号', range(1, len(hospital_visit_counts) + 1))
+        # 保存到新的sheet
+        hospital_visit_counts.to_excel(writer, sheet_name='导出计数_列B', index=False)
     
     print(f"拜访计划已保存到：{output_file}")
     return df_result
@@ -679,15 +689,27 @@ TARGET_VISITS = 20000
 # 文件路径配置
 EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
 # 生成输出路径并写入配置文件
-output_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳21-31.xlsx'
+output_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳21-31 2.xlsx'
 OUTPUT_FILE = output_file
 
 # 将路径写入配置文件，供后续同一批次脚本读取
 
 
-# 将配置文件放到项目目录下，方便后续其他脚本读取
-config_path = os.path.join(os.getcwd(), 'baifang_config.json')
-with open(config_path, 'w', encoding='utf-8') as f:
+# 将配置文件同时放到脚本所在目录和输出文件同目录下
+# 1. 首先获取脚本所在目录
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 2. 获取输出文件所在目录
+output_dir = os.path.dirname(output_file)
+
+# 3. 脚本所在目录
+script_config_path = os.path.join(script_dir, 'baifang_config.json')
+with open(script_config_path, 'w', encoding='utf-8') as f:
+    json.dump({'output_file': output_file}, f, ensure_ascii=False, indent=2)
+
+# 4. 输出文件同目录
+output_config_path = os.path.join(output_dir, 'baifang_config.json')
+with open(output_config_path, 'w', encoding='utf-8') as f:
     json.dump({'output_file': output_file}, f, ensure_ascii=False, indent=2)
 # 拜访日期范围配置（具体日期）
 START_DATE = datetime(2025, 12, 21)  # 开始日期：年-月-日
