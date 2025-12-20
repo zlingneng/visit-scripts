@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import json
 
 def process_visit_numbers():
     """
@@ -14,8 +15,13 @@ def process_visit_numbers():
     5. 在Excel中添加拜访编号列
     """
     
-    # 文件路径
-    excel_path = "/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能.xlsx"
+    # 读取配置文件
+    config_path = os.path.join(os.path.dirname(__file__), 'baifang_config.json')
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    # 从配置文件获取文件路径
+    excel_path = config['output_file']
     # 根据输入的Excel文件路径自动生成图片文件夹路径
     base_dir = os.path.dirname(excel_path)
     image_folder = os.path.join(base_dir, "照片")

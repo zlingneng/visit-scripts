@@ -1,6 +1,7 @@
 import pandas as pd
 import random
 import os
+import json
 from datetime import datetime
 
 def generate_visit_data():
@@ -8,8 +9,18 @@ def generate_visit_data():
     根据贵州医生拜访2502-zdf.xlsx的拜访计划数据，生成新的Excel文件
     """
     
-    # 读取主要数据源文件
-    source_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访251201-20张令能余荷英/贵州医生拜访251201-20-张令能/贵州医生拜访251201-20-张令能_updated.xlsx'
+    # 读取配置文件
+    config_file = '/Users/a000/医院药店拜访/医院/baifang_config.json'
+    with open(config_file, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    
+    # 从配置文件读取output_file并添加_updated后缀
+    source_file = config['output_file']
+    # 检查是否已经有_updated后缀
+    if '_updated' not in source_file:
+        # 添加_updated后缀
+        name_without_ext = os.path.splitext(source_file)[0]
+        source_file = f"{name_without_ext}_updated.xlsx"
     
     try:
         # 读取源数据 - 拜访计划工作表
@@ -103,7 +114,47 @@ def generate_visit_data():
         output_file = os.path.join(input_dir, output_filename)
         
         # 保存到Excel文件
-        df_new.to_excel(output_file, index=False, sheet_name='拜访数据')
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            # 写入拜访数据到sheet1
+            df_new.to_excel(writer, index=False, sheet_name='拜访数据')
+            
+            # 统计数据
+            visit_count = len(df_new)
+            visit_people = df_new['拜访人员'].nunique()
+            visit_institutions = df_new['终端名称'].nunique()
+            # 提取“年月”部分（取前7位，格式为yyyy/mm）并去重
+            visit_months = df_new['拜访日期（yyyy.mm.dd）'].str[:7].drop_duplicates().tolist()
+            cost = visit_count * 300  # 费用标准300元/次
+            
+            # 创建统计表格
+            stats_data = [
+                ['服务供应商', '省份区域', '年月', '服务执行人数'],
+                ['江西展嘉科技有限公司', '贵州省', visit_months, visit_people],
+                ['拜访机构数量', '拜访活动数量', '产品名称', ''],
+                [visit_institutions, visit_count, '复方鲜竹沥、排石颗粒、氨咖黄敏口服溶液', ''],
+                ['等级', '费用标准', '拜访次数', '费用金额（元）'],
+                ['三级', 300, visit_count, cost],
+                ['二级', 300, '', 0],
+                ['其他', 200, '', 0],
+                ['合计', '', '', cost],
+                ['服务供应商盖章确认', '江西展嘉科技有限公司', '', '']
+            ]
+            
+            # 创建统计DataFrame
+            df_stats = pd.DataFrame(stats_data)
+            # 写入统计数据到sheet2
+            df_stats.to_excel(writer, index=False, sheet_name='拜访信息表单', header=False)
+            
+            # 设置单元格宽高
+            workbook = writer.book
+            for sheet_name in writer.sheets:
+                worksheet = writer.sheets[sheet_name]
+                # 设置列宽
+                for col in worksheet.columns:
+                    worksheet.column_dimensions[col[0].column_letter].width = 24
+                # 设置行高
+                for row in range(1, worksheet.max_row + 1):
+                    worksheet.row_dimensions[row].height = 24
         
         print(f"\n数据处理完成！")
         print(f"生成的数据行数: {len(df_new)}")

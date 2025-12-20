@@ -539,8 +539,11 @@ def save_to_excel(visit_plan, output_file, visitor_names):
     """保存拜访计划到Excel文件"""
     df_result = pd.DataFrame(visit_plan)
     
-    # 确保列的顺序：日期 医院名称 地址 拜访人 科室 医生名称 拜访开始时间 拜访结束时间
-    column_order = ['日期', '医院名称', '地址', '拜访人', '科室', '医生名称', '拜访开始时间', '拜访结束时间']
+    # 添加原序号列，从1开始递增
+    df_result['原序号'] = range(1, len(df_result) + 1)
+    
+    # 确保列的顺序：原序号 日期 医院名称 地址 拜访人 科室 医生名称 拜访开始时间 拜访结束时间
+    column_order = ['日期', '医院名称', '地址', '拜访人', '科室', '医生名称', '拜访开始时间', '拜访结束时间','原序号']
     df_result = df_result[column_order]
     
     # 按日期、拜访人和拜访开始时间排序
@@ -689,7 +692,7 @@ TARGET_VISITS = 20000
 # 文件路径配置
 EXCEL_FILE = '/Users/a000/Documents/济生/医院拜访25/贵州省医院医生信息_20251207.xlsx'  # 输入Excel文件路径
 # 生成输出路径并写入配置文件
-output_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳21-31 2.xlsx'
+output_file = '/Users/a000/Documents/济生/医院拜访25/2512/贵州医生拜访2512-贵阳/贵州医生拜访2512-贵阳21-31 3.xlsx'
 OUTPUT_FILE = output_file
 
 # 将路径写入配置文件，供后续同一批次脚本读取
